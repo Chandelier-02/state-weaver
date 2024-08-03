@@ -1,0 +1,20 @@
+{
+  "name": "@crdt-wrapper/yjs",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@crdt-wrapper/shared-types": "workspace:*",
+    "@crdt-wrapper/binder-yjs": "workspace:*",
+    "yjs": "^13.6.18"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@crdt-wrapper/binder-interface",
+  "version": "1.0.0",
+  "types": "index.d.ts",
+  "dependencies": {
+    "@crdt-wrapper/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

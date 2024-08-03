@@ -1,0 +1,14 @@
+{
+  "name": "crdt-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

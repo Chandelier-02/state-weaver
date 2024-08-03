@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ESNext",                              
+    "lib": ["DOM", "ESNext"],                        /* Specify DOM and ECMAScript library definitions to support browser environments. */
+    "useDefineForClassFields": true,                 /* Emit ECMAScript-standard-compliant class fields. */
+
+    /* Modules */
+    "module": "ESNext",                              
+    "moduleResolution": "Node",                     
+    "allowSyntheticDefaultImports": true,            
+    "esModuleInterop": true,                         
+    "forceConsistentCasingInFileNames": true,        
+
+    /* Emit */
+    "declaration": true,                             
+    "declarationMap": true,                          
+    "sourceMap": true,                               
+    "outDir": "./dist",                              
+    "removeComments": true,                          /* Remove comments to reduce file size. */
+    "noEmitOnError": true,                           
+
+    /* Type Checking */
+    "strict": true,                                  
+    "skipLibCheck": true,                             
+
+    /* Additional Options for Compatibility and Size */
+    "importHelpers": true,                           /* Use `tslib` to avoid duplicating helper code across modules. */
+    "inlineSourceMap": false,                        /* Consider disabling inline source maps for production builds. */
+    "inlineSources": false                           /* Consider disabling inline sources to reduce file size. */
+  }
+}
