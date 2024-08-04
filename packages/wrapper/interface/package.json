@@ -1,5 +1,5 @@
 {
-  "name": "@crdt-wrapper/binder-interface",
+  "name": "@crdt-wrapper/interface",
   "version": "1.0.0",
   "types": "index.d.ts",
   "dependencies": {

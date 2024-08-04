@@ -1,1 +1,1 @@
-export * from "./binder";
+export * from "./wrapper";

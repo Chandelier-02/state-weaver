@@ -36,5 +36,5 @@ export interface CRDTWrapper<T extends CRDTCompatibleValue> {
    *                 This update is generally produced by a remote peer or another part of the system
    *                 and represents a set of changes that need to be integrated into the current state.
    */
-  applyUpdate(update: Uint8Array): void;
+  applyCRDTUpdate(update: Uint8Array): void;
 }
