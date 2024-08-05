@@ -7,7 +7,12 @@ import { isJSONArray, isJSONObject, isString } from "@crdt-wrapper/util";
 import * as Y from "yjs";
 import { Patch, create } from "mutative";
 import createStringPatch, { Change } from "textdiff-create";
-import { assertSupportedEvent, toPojo, toYDataType } from "./util";
+import {
+  assertSourceAndPojoAreValid,
+  assertSupportedEvent,
+  toPojo,
+  toYDataType,
+} from "./util";
 import { SupportedSource } from "./types";
 
 /**
@@ -34,6 +39,7 @@ export class YjsWrapper<
    * @param source - The Yjs shared type that this wrapper will manage (either Y.Map or Y.Array).
    * @returns An object containing the created wrapper and the initial update as a Uint8Array.
    * @throws {Error} If the initial object is not of type object.
+   * @throws {Error} If the initial object is not a POJO.
    * @throws {Error} If the initial object is an array but the source is not a Y.Array.
    * @throws {Error} If the initial object is an object but the source is not a Y.Map.
    * @throws {Error} If the source is not bound to a document.
@@ -42,25 +48,7 @@ export class YjsWrapper<
     initialObject: Snapshot,
     source: SupportedSource
   ): { wrapper: YjsWrapper<Snapshot>; initialUpdate: Uint8Array | undefined } {
-    if (typeof initialObject !== "object") {
-      throw new Error(
-        "Invalid argument. Initial object must be of type object."
-      );
-    }
-
-    if (Array.isArray(initialObject)) {
-      if (!(source instanceof Y.Array)) {
-        throw new Error(
-          "Invalid argument. For an array, the source must be a Y.Array."
-        );
-      }
-    } else {
-      if (!(source instanceof Y.Map)) {
-        throw new Error(
-          "Invalid argument. For an object, the source must be a Y.Map."
-        );
-      }
-    }
+    assertSourceAndPojoAreValid(source, initialObject);
 
     const wrapper = new YjsWrapper<Snapshot>(source);
     const initialUpdate = wrapper.update(() => initialObject);
@@ -99,6 +87,8 @@ export class YjsWrapper<
   }
 
   // TODO: Figure out if I can dynamically tell the changeFn to return a string if the snapshot is a string
+  // I can use overload methods to accomplish this. Maybe this will allow me to modify the string without
+  // needing to modify the object
   /**
    * Updates the CRDT state using the provided change function, which modifies the snapshot.
    * The change function receives the current snapshot and can make changes that are then propagated to the underlying CRDT.
@@ -108,7 +98,7 @@ export class YjsWrapper<
    */
   public update(changeFn: (snapshot: Snapshot) => void): Uint8Array {
     return this.#doc.transact((): Uint8Array => {
-      return this.#applyPojoUpdate(this.#source, this.#snapshot, changeFn);
+      return this.#applyLocalUpdate(this.#source, this.#snapshot, changeFn);
     });
   }
 
@@ -168,7 +158,7 @@ export class YjsWrapper<
     if (event instanceof Y.YMapEvent && isJSONObject(base)) {
       const source = event.target as Y.Map<any>;
 
-      event.changes.keys.forEach((change, key) => {
+      for (const [key, change] of event.changes.keys) {
         switch (change.action) {
           case "add":
           case "update":
@@ -178,12 +168,12 @@ export class YjsWrapper<
             delete base[key];
             break;
         }
-      });
+      }
     } else if (event instanceof Y.YArrayEvent && isJSONArray(base)) {
       const arr = base as any[];
 
       let retain = 0;
-      event.changes.delta.forEach((change) => {
+      for (const change of event.changes.delta) {
         if (change.retain) {
           retain += change.retain;
         }
@@ -198,7 +188,7 @@ export class YjsWrapper<
           }
           retain += change.insert.length;
         }
-      });
+      }
     } else if (event instanceof Y.YTextEvent && isString(base)) {
       return this.#applyYTextEvent(base, event);
     }
@@ -217,7 +207,7 @@ export class YjsWrapper<
     let text = base;
 
     let retain = 0;
-    event.changes.delta.forEach((change) => {
+    for (const change of event.changes.delta) {
       if (change.retain) {
         retain += change.retain;
       }
@@ -232,7 +222,7 @@ export class YjsWrapper<
         text = text.slice(0, retain) + insertText + text.slice(retain);
         retain += insertText.length;
       }
-    });
+    }
     return text;
   }
 
@@ -241,12 +231,12 @@ export class YjsWrapper<
    * This method wraps the update operation in a Yjs transaction, ensuring that the changes are applied atomically.
    *
    * @param source - The Yjs data structure (Y.Array or Y.Map) being updated.
-   * @param snapshot - The current state snapshot of the CRDT represented as a plain JavaScript object.
+   * @param snapshot - The current state snapshot of the CRDT represented as a plain JavaScript object or array.
    * @param changeFn - A function that receives the current snapshot and applies changes to it.
    *                   This function should modify the snapshot as needed to reflect the desired state.
    * @returns A Uint8Array representing the encoded update to be applied to the Yjs document, which can be used for further synchronization.
    */
-  #applyPojoUpdate(
+  #applyLocalUpdate(
     source: SupportedSource,
     snapshot: Snapshot,
     changeFn: (snapshot: Snapshot) => void
@@ -324,10 +314,6 @@ export class YjsWrapper<
       if (value < base.length) {
         const diff = base.length - value;
         base.delete(value, diff);
-      }
-    } else if (base instanceof Y.Text && typeof property === "string") {
-      if (op !== "replace") {
-        throw new Error();
       }
     } else {
       throw new Error(

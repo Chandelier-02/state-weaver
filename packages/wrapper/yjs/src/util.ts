@@ -9,10 +9,16 @@ import * as Y from "yjs";
 import { SupportedSource } from "./types";
 
 /**
- * Asserts that the provided Yjs event is supported. Throws an error if the event is not one of the supported types.
+ * Asserts that the provided Yjs event is supported.
+ * Throws an error if the event is not one of the supported types.
+ *
+ * Supported events include:
+ * - Y.YMapEvent
+ * - Y.YArrayEvent
+ * - Y.YTextEvent (with a path length greater than 1)
  *
  * @param event - The Yjs event to check.
- * @throws {Error} If the event is not a Y.YMapEvent, Y.YArrayEvent, or a Y.YTextEvent with a path length greater than 1.
+ * @throws {Error} If the event is not supported.
  */
 export function assertSupportedEvent(event: Y.YEvent<any>): void {
   if (
@@ -26,6 +32,59 @@ export function assertSupportedEvent(event: Y.YEvent<any>): void {
       `Cannot handle change events from ${event.constructor.name}`
     );
   }
+}
+
+/**
+ * Asserts that the provided source and object are valid for binding.
+ * Throws an error if the source or object is not compatible.
+ *
+ * The function checks:
+ * - The type of the object (must be an object or array)
+ * - For arrays, the source must be a Y.Array
+ * - For objects, the source must be a Y.Map and the object must be a plain object (POJO)
+ *
+ * @param source - The Yjs type source to check.
+ * @param object - The object to validate.
+ * @throws {Error} If the object or source is invalid.
+ */
+export function assertSourceAndPojoAreValid(
+  source: SupportedSource,
+  object: CRDTCompatiblePojo | CRDTCompatibleArray
+): void {
+  if (typeof object !== "object") {
+    throw new Error("Invalid argument. Initial object must be of type object.");
+  }
+
+  if (Array.isArray(object)) {
+    if (!(source instanceof Y.Array)) {
+      throw new Error(
+        "Invalid argument. For an array, the source must be a Y.Array."
+      );
+    }
+  } else {
+    if (!isPojo(object)) {
+      throw new Error("Invalid argument. Initial object must be a POJO.");
+    }
+    if (!(source instanceof Y.Map)) {
+      throw new Error(
+        "Invalid argument. For an object, the source must be a Y.Map."
+      );
+    }
+  }
+}
+
+/**
+ * Checks if the given object is a plain JavaScript object (POJO).
+ *
+ * @param object - The object to check.
+ * @returns True if the object is a POJO, otherwise false.
+ */
+function isPojo(object: unknown): object is CRDTCompatiblePojo {
+  return (
+    object !== null &&
+    typeof object === "object" &&
+    [null, Object.prototype].includes(Object.getPrototypeOf(object))
+  );
 }
 
 /**
@@ -47,7 +106,7 @@ export function toPojo(
 
 /**
  * Converts a CRDT-compatible value to its corresponding Yjs data type.
- * This function handles conversion of JSON primitives, arrays, objects, and strings to Yjs types.
+ * This function handles the conversion of JSON primitives, arrays, objects, and strings to Yjs types.
  *
  * @param v - The CRDT-compatible value to convert.
  * @returns The corresponding Yjs data type, or undefined if the conversion is not possible.
