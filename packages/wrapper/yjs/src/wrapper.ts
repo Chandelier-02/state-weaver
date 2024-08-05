@@ -37,7 +37,7 @@ export class YjsWrapper<
     new Set();
 
   /**
-   * Creates a new YjsWrapper instance and returns it along with the initial update that reflects the provided initial object.
+   * Constructs a new YjsWrapper instance for a given Yjs shared type.
    *
    * @param initialObject - The initial state of the CRDT, represented as a plain JavaScript object.
    * @param source - The Yjs shared type that this wrapper will manage (either Y.Map or Y.Array).
@@ -47,27 +47,12 @@ export class YjsWrapper<
    * @throws {Error} If the initial object is an array but the source is not a Y.Array.
    * @throws {Error} If the initial object is an object but the source is not a Y.Map.
    */
-  public static wrap<Snapshot extends CRDTCompatibleArray | CRDTCompatiblePojo>(
-    initialObject: Snapshot,
-    source: SupportedSource
-  ): YjsWrapper<Snapshot> {
+  constructor(initialObject: Snapshot, source: SupportedSource) {
     assertSourceAndPojoAreValid(source, initialObject);
-
-    const wrapper = new YjsWrapper<Snapshot>(source);
-    wrapper.update(() => initialObject);
-
-    return wrapper;
-  }
-
-  /**
-   * Constructs a new YjsWrapper instance for a given Yjs shared type.
-   *
-   * @param source - The Yjs shared type (Y.Map or Y.Array) that this wrapper will manage.
-   */
-  private constructor(source: SupportedSource) {
     this.#source = source;
     this.#source.observeDeep(this.#observeDeepFunc);
     this.#snapshot = this.#source.toJSON() as Snapshot;
+    this.update(() => initialObject);
   }
 
   /**
