@@ -29,7 +29,12 @@ export class YjsWrapper<
   #snapshot: Snapshot;
   #observeDeepFunc = (events: Y.YEvent<any>[]) => {
     this.#snapshot = this.#applyYEvents(events);
+    for (const subscription of this.#subscriptions) {
+      subscription(Object.freeze(this.#snapshot));
+    }
   };
+  readonly #subscriptions: Set<(snapshot: Readonly<Snapshot>) => void> =
+    new Set();
 
   /**
    * Creates a new YjsWrapper instance and returns it along with the initial update that reflects the provided initial object.
@@ -67,9 +72,10 @@ export class YjsWrapper<
 
   /**
    * Gets the current snapshot of the CRDT state, represented as a plain JavaScript object.
+   * The snapshot returned will be immutable as all updates must go through the `update` method.
    */
-  get snapshot(): Snapshot {
-    return this.#snapshot;
+  get snapshot(): Readonly<Snapshot> {
+    return Object.freeze(this.#snapshot);
   }
 
   /**
@@ -96,6 +102,39 @@ export class YjsWrapper<
       });
     }
     this.#applyLocalUpdate(this.#source, this.#snapshot, changeFn);
+  }
+
+  /**
+   * Subscribes to changes in the CRDT state. The provided listener function will be called
+   * whenever the CRDT state is updated, providing the latest snapshot of the state.
+   * The listener function can be used to react to changes in the state in real-time.
+   *
+   * The listener will receive the new snapshot whenever there is an update. This allows the
+   * client to observe changes and update its state or UI accordingly. The snapshot provided
+   * to the listener is immutable and reflects the current state of the CRDT.
+   *
+   * @param listener - A function that is called with the latest snapshot of the CRDT state
+   * whenever the state is updated. The snapshot is a deep copy of the current state, ensuring
+   * that modifications to it do not affect the internal state.
+   */
+  public subscribe(listener: (snapshot: Snapshot) => void): void {
+    this.#subscriptions.add(listener);
+  }
+
+  /**
+   * Unsubscribes a previously subscribed listener from changes in the CRDT state.
+   * This method removes the listener function from the set of subscribed listeners,
+   * so it will no longer be called when the CRDT state updates.
+   *
+   * The provided listener must match exactly with one that was previously passed to the
+   * `subscribe` method. After this method is called, the listener will no longer be invoked
+   * with state updates, effectively stopping any real-time state synchronization for that listener.
+   *
+   * @param listener - The function that was previously subscribed and should now be removed.
+   *                   This must be the same function reference that was passed to `subscribe`.
+   */
+  public unsubscribe(listener: (snapshot: Readonly<Snapshot>) => void): void {
+    this.#subscriptions.delete(listener);
   }
 
   /**

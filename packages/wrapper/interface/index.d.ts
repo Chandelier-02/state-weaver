@@ -26,4 +26,26 @@ export interface CRDTWrapper<T extends CRDTCompatibleValue> {
    * @param changeFn - A function that accepts the current snapshot and modifies it to reflect the desired changes.
    */
   update(changeFn: (snapshot: T) => T): void;
+
+  /**
+   * Subscribes to changes in the CRDT state. The provided listener function will be called
+   * whenever the CRDT state is updated, providing the latest readonly snapshot of the state.
+   * The listener function can be used to react to changes in the state in real-time.
+   *
+   * @param listener - A function that is called with the latest snapshot of the CRDT state
+   * whenever the state is updated. The readonly snapshot provided to the listener is a direct reflection
+   * of the current state of the CRDT.
+   */
+  subscribe(listener: (snapshot: Readonly<T>) => void): void;
+
+  /**
+   * Unsubscribes a previously subscribed listener from changes in the CRDT state.
+   * This method removes the listener function from the set of subscribed listeners,
+   * so it will no longer be called when the CRDT state updates.
+   *
+   * @param listener - The function that was previously subscribed and should now be removed.
+   *                   The provided function reference must match exactly with one that was
+   *                   previously passed to the `subscribe` method.
+   */
+  unsubscribe(listener: (snapshot: Readonly<T>) => void): void;
 }

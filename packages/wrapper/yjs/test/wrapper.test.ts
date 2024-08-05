@@ -196,4 +196,169 @@ describe("YjsWrapper", () => {
 
     expect(wrapper.snapshot).toEqual({ key1: "value1" });
   });
+
+  describe("Subscription handling", () => {
+    test("subscribe method calls listener on state change", () => {
+      const initialObject = { key1: "value1" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let latestSnapshot: any;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        latestSnapshot = snapshot;
+      };
+
+      wrapper.subscribe(listener);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "newValue";
+      });
+
+      expect(latestSnapshot).toEqual({ key1: "newValue" });
+      expect(wrapper.snapshot).toEqual(latestSnapshot);
+    });
+
+    test("unsubscribe method prevents listener from being called", () => {
+      const initialObject = { key1: "value1" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let callCount = 0;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        callCount++;
+      };
+
+      wrapper.subscribe(listener);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "newValue";
+      });
+
+      expect(callCount).toBe(1);
+
+      wrapper.unsubscribe(listener);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "anotherValue";
+      });
+
+      expect(callCount).toBe(1);
+    });
+
+    test("multiple listeners receive updates", () => {
+      const initialObject = { key1: "value1" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let listener1CallCount = 0;
+      const listener1 = (snapshot: Readonly<typeof initialObject>) => {
+        listener1CallCount++;
+      };
+
+      let listener2CallCount = 0;
+      const listener2 = (snapshot: Readonly<typeof initialObject>) => {
+        listener2CallCount++;
+      };
+
+      wrapper.subscribe(listener1);
+      wrapper.subscribe(listener2);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "newValue";
+      });
+
+      expect(listener1CallCount).toBe(1);
+      expect(listener2CallCount).toBe(1);
+
+      wrapper.unsubscribe(listener1);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "anotherValue";
+      });
+
+      expect(listener1CallCount).toBe(1);
+      expect(listener2CallCount).toBe(2);
+    });
+  });
+
+  describe("Read-only snapshot enforcement", () => {
+    test("attempting to modify the snapshot object directly has no effect", () => {
+      const initialObject = { key1: "value1", key2: "value2" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let latestSnapshot: any;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        latestSnapshot = snapshot;
+      };
+
+      wrapper.subscribe(listener);
+
+      expect(() => {
+        (latestSnapshot as any).key1 = "should not change";
+      }).toThrow(TypeError);
+
+      expect(wrapper.snapshot).toEqual(initialObject);
+      expect(map.toJSON()).toEqual(initialObject);
+    });
+
+    test("attempting to add properties to the snapshot object throws an error", () => {
+      const initialObject = { key1: "value1", key2: "value2" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let latestSnapshot: any;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        latestSnapshot = snapshot;
+      };
+
+      wrapper.subscribe(listener);
+
+      expect(() => {
+        (latestSnapshot as any).newKey = "should not add";
+      }).toThrow(TypeError);
+
+      expect(wrapper.snapshot).toEqual(initialObject);
+      expect(map.toJSON()).toEqual(initialObject);
+    });
+
+    test("attempting to delete properties from the snapshot object throws an error", () => {
+      const initialObject = { key1: "value1", key2: "value2" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let latestSnapshot: any;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        latestSnapshot = snapshot;
+      };
+
+      wrapper.subscribe(listener);
+
+      expect(() => {
+        delete (latestSnapshot as any).key1;
+      }).toThrow(TypeError);
+
+      expect(wrapper.snapshot).toEqual(initialObject);
+      expect(map.toJSON()).toEqual(initialObject);
+    });
+
+    test("modifications through update function reflect in the snapshot but not directly modifying the snapshot", () => {
+      const initialObject = { key1: "value1", key2: "value2" };
+      const wrapper = YjsWrapper.wrap(initialObject, map);
+
+      let latestSnapshot: any;
+      const listener = (snapshot: Readonly<typeof initialObject>) => {
+        latestSnapshot = snapshot;
+      };
+
+      wrapper.subscribe(listener);
+
+      wrapper.update((snapshot) => {
+        snapshot.key1 = "newValue";
+        return snapshot;
+      });
+
+      expect(latestSnapshot).toEqual({ key1: "newValue", key2: "value2" });
+
+      expect(() => {
+        (latestSnapshot as any).key2 = "should not change";
+      }).toThrow(TypeError);
+
+      expect(wrapper.snapshot).toEqual({ key1: "newValue", key2: "value2" });
+    });
+  });
 });

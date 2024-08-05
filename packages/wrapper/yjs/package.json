@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "author": "Chandelier-02",
+  "description": "A TypeScript library that provides a wrapper around Yjs shared types, facilitating easy interaction with Yjs CRDTs (Conflict-free Replicated Data Types) using plain JavaScript objects. It supports synchronization, updates, and observing changes within the CRDT framework, enabling efficient management and manipulation of shared data in real-time collaborative applications.",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "vitest"
+    "build": "pnpm run clean && tsc",
+    "test": "vitest",
+    "prepare": "pnpm run build",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@crdt-wrapper/interface": "workspace:*",
@@ -20,7 +24,25 @@
   },
   "devDependencies": {
     "@types/textdiff-create": "^1.0.2",
+    "rimraf": "^6.0.1",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
-  }
+  },
+  "keywords": [
+    "CRDT",
+    "Yjs",
+    "Real-time collaboration",
+    "Data synchronization",
+    "Conflict-free replicated data types",
+    "JavaScript",
+    "TypeScript",
+    "Shared types",
+    "Y.Map",
+    "Y.Array",
+    "Collaborative editing",
+    "Distributed systems",
+    "State management",
+    "JSON",
+    "Wrapper library"
+  ]
 }
