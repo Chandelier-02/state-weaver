@@ -2,6 +2,20 @@
   "name": "@crdt-wrapper/interface",
   "version": "1.0.0",
   "types": "index.d.ts",
+  "author": "Chandelier-02",
+  "license": "MIT",
+  "description": "A TypeScript interface for binding Conflict-free Replicated Data Types (CRDTs) to plain JavaScript objects, providing synchronization and state management utilities.",
+  "keywords": [  "CRDT",
+    "Conflict-free Replicated Data Type",
+    "TypeScript",
+    "JavaScript",
+    "state management",
+    "synchronization",
+    "distributed systems",
+    "data synchronization",
+    "interface",
+    "POJO"
+  ],
   "dependencies": {
     "@crdt-wrapper/shared-types": "workspace:*"
   },
