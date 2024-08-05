@@ -26,15 +26,4 @@ export interface CRDTWrapper<T extends CRDTCompatibleValue> {
    * @param changeFn - A function that accepts the current snapshot and modifies it to reflect the desired changes.
    */
   update(changeFn: (snapshot: T) => T): void;
-
-  /**
-   * Applies a given update to the CRDT state. This update is typically an encoded representation
-   * of changes that need to be merged into the current state. The method ensures that the local
-   * snapshot is updated accordingly to reflect the changes made in the update.
-   *
-   * @param update - A Uint8Array containing the encoded changes to be applied to the CRDT.
-   *                 This update is generally produced by a remote peer or another part of the system
-   *                 and represents a set of changes that need to be integrated into the current state.
-   */
-  applyCRDTUpdate(update: Uint8Array): void;
 }

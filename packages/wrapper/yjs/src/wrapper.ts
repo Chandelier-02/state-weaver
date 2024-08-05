@@ -26,7 +26,6 @@ export class YjsWrapper<
 > implements CRDTWrapper<Snapshot>
 {
   readonly #source: SupportedSource;
-  readonly #doc: Y.Doc;
   #snapshot: Snapshot;
   #observeDeepFunc = (events: Y.YEvent<any>[]) => {
     this.#snapshot = this.#applyYEvents(events);
@@ -37,23 +36,22 @@ export class YjsWrapper<
    *
    * @param initialObject - The initial state of the CRDT, represented as a plain JavaScript object.
    * @param source - The Yjs shared type that this wrapper will manage (either Y.Map or Y.Array).
-   * @returns An object containing the created wrapper and the initial update as a Uint8Array.
+   * @returns The created wrapper.
    * @throws {Error} If the initial object is not of type object.
    * @throws {Error} If the initial object is not a POJO.
    * @throws {Error} If the initial object is an array but the source is not a Y.Array.
    * @throws {Error} If the initial object is an object but the source is not a Y.Map.
-   * @throws {Error} If the source is not bound to a document.
    */
   public static wrap<Snapshot extends CRDTCompatibleArray | CRDTCompatiblePojo>(
     initialObject: Snapshot,
     source: SupportedSource
-  ): { wrapper: YjsWrapper<Snapshot>; initialUpdate: Uint8Array | undefined } {
+  ): YjsWrapper<Snapshot> {
     assertSourceAndPojoAreValid(source, initialObject);
 
     const wrapper = new YjsWrapper<Snapshot>(source);
-    const initialUpdate = wrapper.update(() => initialObject);
+    wrapper.update(() => initialObject);
 
-    return { wrapper, initialUpdate };
+    return wrapper;
   }
 
   /**
@@ -62,10 +60,6 @@ export class YjsWrapper<
    * @param source - The Yjs shared type (Y.Map or Y.Array) that this wrapper will manage.
    */
   private constructor(source: SupportedSource) {
-    if (!source.doc) {
-      throw new Error("Source must be bound to a document");
-    }
-    this.#doc = source.doc;
     this.#source = source;
     this.#source.observeDeep(this.#observeDeepFunc);
     this.#snapshot = this.#source.toJSON() as Snapshot;
@@ -94,27 +88,14 @@ export class YjsWrapper<
    * The change function receives the current snapshot and can make changes that are then propagated to the underlying CRDT.
    *
    * @param changeFn - A function that accepts the current snapshot and modifies it to reflect the desired changes.
-   * @returns A Uint8Array representing the encoded update to be applied to the Yjs document.
    */
-  public update(changeFn: (snapshot: Snapshot) => void): Uint8Array {
-    return this.#doc.transact((): Uint8Array => {
-      return this.#applyLocalUpdate(this.#source, this.#snapshot, changeFn);
-    });
-  }
-
-  /**
-   * Applies a given update to the CRDT state. This update is typically an encoded representation
-   * of changes that need to be merged into the current state. The method ensures that the local
-   * snapshot is updated accordingly to reflect the changes made in the update.
-   *
-   * @param update - A Uint8Array containing the encoded changes to be applied to the CRDT.
-   *                 This update is generally produced by a remote peer or another part of the system
-   *                 and represents a set of changes that need to be integrated into the current state.
-   */
-  public applyCRDTUpdate(update: Uint8Array): void {
-    this.#doc.transact(() => {
-      Y.applyUpdate(this.#doc, update);
-    });
+  public update(changeFn: (snapshot: Snapshot) => void): void {
+    if (this.#source.doc) {
+      return this.#source.doc.transact(() => {
+        this.#applyLocalUpdate(this.#source, this.#snapshot, changeFn);
+      });
+    }
+    this.#applyLocalUpdate(this.#source, this.#snapshot, changeFn);
   }
 
   /**
@@ -227,26 +208,23 @@ export class YjsWrapper<
   }
 
   /**
-   * Applies a local update to the CRDT state using the provided change function and returns the resulting update as a Uint8Array.
+   * Applies a local update to the CRDT state using the provided change function..
    * This method wraps the update operation in a Yjs transaction, ensuring that the changes are applied atomically.
    *
    * @param source - The Yjs data structure (Y.Array or Y.Map) being updated.
    * @param snapshot - The current state snapshot of the CRDT represented as a plain JavaScript object or array.
    * @param changeFn - A function that receives the current snapshot and applies changes to it.
    *                   This function should modify the snapshot as needed to reflect the desired state.
-   * @returns A Uint8Array representing the encoded update to be applied to the Yjs document, which can be used for further synchronization.
    */
   #applyLocalUpdate(
     source: SupportedSource,
     snapshot: Snapshot,
     changeFn: (snapshot: Snapshot) => void
-  ): Uint8Array {
+  ): void {
     const [, patches] = create(snapshot, changeFn, { enablePatches: true });
-    const updates: Uint8Array[] = [];
     for (const patch of patches) {
-      updates.push(this.#applyPatch(source, patch));
+      this.#applyPatch(source, patch);
     }
-    return Y.mergeUpdates(updates);
   }
 
   /**
@@ -254,10 +232,8 @@ export class YjsWrapper<
    *
    * @param target - The Yjs data structure (Y.Array or Y.Map) being updated.
    * @param patch - The patch to apply, which contains information about the changes to be made.
-   * @returns A Uint8Array representing the encoded update to be applied to the Yjs document.
    */
-  #applyPatch(target: SupportedSource, patch: Patch): Uint8Array {
-    const oldStateVector = Y.encodeStateVector(this.#doc);
+  #applyPatch(target: SupportedSource, patch: Patch): void {
     const { path, op, value } = patch;
     if (!Array.isArray(path) || path.length === 0) {
       if (op !== "replace") {
@@ -276,7 +252,7 @@ export class YjsWrapper<
         const patches = createStringPatch(string, value);
         this.#applyStringPatches(target, patches);
       }
-      return Y.encodeStateAsUpdate(this.#doc, oldStateVector);
+      return;
     }
 
     let base = target;
@@ -320,8 +296,6 @@ export class YjsWrapper<
         `Cannot handle patch ${patch} on instance of ${base.constructor.name}`
       );
     }
-
-    return Y.encodeStateAsUpdate(this.#doc, oldStateVector);
   }
 
   /**

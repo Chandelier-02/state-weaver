@@ -17,7 +17,7 @@ describe("YjsWrapper", () => {
 
   test("wrap method with object replacement", () => {
     const initialObject = { key1: "value1", key2: "value2" };
-    const { wrapper } = YjsWrapper.wrap(initialObject, map);
+    const wrapper = YjsWrapper.wrap(initialObject, map);
 
     wrapper.update((snapshot) => {
       snapshot.key1 = "newValue";
@@ -30,7 +30,7 @@ describe("YjsWrapper", () => {
 
   test("deep object modifications", () => {
     const initialObject = { level1: { level2: { key: "value" } } };
-    const { wrapper } = YjsWrapper.wrap(initialObject, map);
+    const wrapper = YjsWrapper.wrap(initialObject, map);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.key = "newValue";
@@ -51,7 +51,7 @@ describe("YjsWrapper", () => {
 
     test("basic string replacement", () => {
       const starterObject = { text: "Hello, world!" };
-      const { wrapper } = YjsWrapper.wrap<{ text: string }>(starterObject, map);
+      const wrapper = YjsWrapper.wrap<{ text: string }>(starterObject, map);
 
       wrapper.update((snapshot) => {
         const text = snapshot.text;
@@ -63,7 +63,7 @@ describe("YjsWrapper", () => {
 
     test("string appending", () => {
       const starterObject = { text: "Hello" };
-      const { wrapper } = YjsWrapper.wrap<{ text: string }>(starterObject, map);
+      const wrapper = YjsWrapper.wrap<{ text: string }>(starterObject, map);
 
       wrapper.update((snapshot) => {
         return { ...snapshot, text: snapshot.text + ", world!" };
@@ -74,7 +74,7 @@ describe("YjsWrapper", () => {
 
     test("string truncation", () => {
       const starterObject = { text: "Hello, world!" };
-      const { wrapper } = YjsWrapper.wrap<{ text: string }>(starterObject, map);
+      const wrapper = YjsWrapper.wrap<{ text: string }>(starterObject, map);
 
       wrapper.update((snapshot) => {
         return { ...snapshot, text: snapshot.text.substring(0, 5) };
@@ -85,7 +85,7 @@ describe("YjsWrapper", () => {
 
     test("complex string manipulation", () => {
       const starterObject = { text: "OpenAI GPT-4" };
-      const { wrapper } = YjsWrapper.wrap<{ text: string }>(starterObject, map);
+      const wrapper = YjsWrapper.wrap<{ text: string }>(starterObject, map);
 
       wrapper.update((snapshot) => {
         return {
@@ -101,7 +101,7 @@ describe("YjsWrapper", () => {
 
     test("string replacement with empty", () => {
       const starterObject = { text: "Hello, world!" };
-      const { wrapper } = YjsWrapper.wrap<{ text: string }>(starterObject, map);
+      const wrapper = YjsWrapper.wrap<{ text: string }>(starterObject, map);
 
       wrapper.update((snapshot) => {
         return { ...snapshot, text: "" };
@@ -114,7 +114,7 @@ describe("YjsWrapper", () => {
   describe("Array modifications", () => {
     test("push item to array", () => {
       const initialArray = [1, 2, 3];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         snapshot.push(4);
@@ -126,7 +126,7 @@ describe("YjsWrapper", () => {
 
     test("splice item from array", () => {
       const initialArray = [1, 2, 3];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         snapshot.splice(1, 1);
@@ -138,7 +138,7 @@ describe("YjsWrapper", () => {
 
     test("replace array items", () => {
       const initialArray = [1, 2, 3];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         snapshot.splice(0, 2, 4, 5);
@@ -150,7 +150,7 @@ describe("YjsWrapper", () => {
 
     test("clear array", () => {
       const initialArray = [1, 2, 3];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         snapshot.splice(0, snapshot.length);
@@ -162,7 +162,7 @@ describe("YjsWrapper", () => {
 
     test("push multiple items", () => {
       const initialArray = [1, 2, 3];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         snapshot.push(4, 5, 6);
@@ -174,7 +174,7 @@ describe("YjsWrapper", () => {
 
     test("nested array modification", () => {
       const initialArray = [1, [2, 3], 4];
-      const { wrapper } = YjsWrapper.wrap(initialArray, array);
+      const wrapper = YjsWrapper.wrap(initialArray, array);
 
       wrapper.update((snapshot) => {
         (snapshot[1] as number[]).push(5);
@@ -186,24 +186,9 @@ describe("YjsWrapper", () => {
     });
   });
 
-  test("applyCRDTUpdate method", () => {
-    const initialObject = { key1: "value1" };
-    const { wrapper } = YjsWrapper.wrap(initialObject, map);
-    const newDoc = new Y.Doc();
-    const newMap = newDoc.getMap("map");
-
-    newMap.set("key2", "value2");
-    const update = Y.encodeStateAsUpdate(newDoc);
-
-    wrapper.applyCRDTUpdate(update);
-
-    expect(wrapper.snapshot).toEqual({ key1: "value1", key2: "value2" });
-    expect(map.toJSON()).toEqual({ key1: "value1", key2: "value2" });
-  });
-
   test("unbind method", () => {
     const initialObject = { key1: "value1" };
-    const { wrapper } = YjsWrapper.wrap(initialObject, map);
+    const wrapper = YjsWrapper.wrap(initialObject, map);
 
     wrapper.unbind();
 
