@@ -2,6 +2,9 @@
 
 `YjsWrapper` is a class that wraps a Yjs shared type and provides an interface to interact with it using plain JavaScript objects. It supports synchronization, updates, and observing changes within the CRDT framework.
 
+**Previous Work:**
+This project builds off of [immer-yjs](https://github.com/sep2/immer-yjs).
+
 **Note:**
 The current implementation does not support top level text edits. You cannot pass an empty string as the initial object.
 However, it does support nested text edits if the string is within an object or array.
