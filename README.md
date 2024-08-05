@@ -2,6 +2,9 @@
 
 `CRDTWrapper` is an interface designed to bind a Conflict-free Replicated Data Type (CRDT) to a plain old JavaScript object (Pojo) representation. It provides methods to manage the lifecycle of the binding, update the Pojo state, and access the current snapshot of the state.
 
+**Note:** 
+So far, only a yjs wrapper has been created. Others for JSON-JOY, Loro, are being worked on.
+
 ## Installation
 
 To install the package, you can use npm:
