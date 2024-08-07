@@ -1,201 +1,296 @@
-// import * as Y from "yjs";
+import * as Y from "yjs";
 
-// // Primitive types excluding string
-// export type SchemaPrimitiveNoString = "boolean" | "number" | "null";
+export type Primitive =
+  | bigint
+  | boolean
+  | null
+  | number
+  | string
+  | symbol
+  | undefined;
 
-// // Base interface for CRDT and Non-CRDT types
-// interface BaseSchema {
-//   crdt: boolean;
-// }
+export type JSONValue = Primitive | JSONObject | JSONArray;
 
-// // CRDT Types
-// export interface CRDTObject extends BaseSchema {
-//   crdt: true;
-//   value: { [key: string]: SchemaValue };
-// }
+export type JSONObject = { [key: string]: JSONValue };
 
-// export interface CRDTArray extends BaseSchema {
-//   crdt: true;
-//   values: [];
-// }
+export type JSONArray = Array<JSONValue>;
 
-// export interface CRDTString extends BaseSchema {
-//   crdt: true;
-//   value: string;
-// }
+export function isYType(element: any): boolean {
+  return element instanceof Y.AbstractType;
+}
 
-// // Non-CRDT Types
-// export interface NonCRDTObject extends BaseSchema {
-//   crdt: false;
-//   value: { [key: string]: NonCRDTValue };
-// }
+export type PrimitiveType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "symbol"
+  | "bigint"
+  | "null"
+  | "undefined";
 
-// export interface NonCRDTArray extends BaseSchema {
-//   crdt: false;
-//   values: NonCRDTValue[];
-// }
+export type DocElementTypeDescription =
+  | PrimitiveType
+  | DocElementTypeDescription[]
+  | DocTypeDescription;
 
-// export interface NonCRDTString extends BaseSchema {
-//   crdt: false;
-//   value: string;
-// }
+export type DocTypeDescription = {
+  [key: string]: DocElementTypeDescription;
+};
 
-// export type NonCRDTValue =
-//   | NonCRDTObject
-//   | NonCRDTArray
-//   | NonCRDTString
-//   | SchemaPrimitiveNoString;
+type MapElementType<T> = T extends "string"
+  ? string
+  : T extends "number"
+  ? number
+  : T extends "boolean"
+  ? boolean
+  : T extends "symbol"
+  ? symbol
+  : T extends "bigint"
+  ? bigint
+  : T extends "null"
+  ? null
+  : T extends "undefined"
+  ? undefined
+  : T extends DocElementTypeDescription[]
+  ? ReadonlyArray<MapElementType<T[number]>>
+  : T extends DocTypeDescription
+  ? MappedTypeDescription<T>
+  : never;
 
-// export type SchemaValue = CRDTObject | CRDTArray | CRDTString;
+export type MappedTypeDescription<T extends DocTypeDescription> =
+  MakeTopLevelReadonly<{
+    [P in keyof T]: MapElementType<T[P]>;
+  }>;
 
-// type ReadonlyTopLevel<T> = {
-//   readonly [K in keyof T]: T[K];
-// };
+type DeepReadonlyIfObject<T> = T extends JSONObject
+  ? { readonly [K in keyof T]: DeepReadonlyIfObject<T[K]> }
+  : T;
 
-// export type SupportedTopLevelSchemaValue = ReadonlyTopLevel<{
-//   [key: string]: SchemaValue;
-// }>;
+type MakeTopLevelReadonly<T> = {
+  readonly [K in keyof T]: T[K] extends JSONObject
+    ? DeepReadonlyIfObject<T[K]>
+    : T[K];
+};
 
-// type ConvertSchema<S> = S extends { crdt: true }
-//   ? S extends CRDTObject
-//     ? { [K in keyof S["value"]]: ConvertSchema<S["value"][K]> }
-//     : S extends CRDTArray
-//     ? ConvertSchema<S["values"][number]>[]
-//     : S extends CRDTString
-//     ? string
-//     : never
-//   : S extends { crdt: false }
-//   ? S extends NonCRDTObject
-//     ? { [K in keyof S["value"]]: ConvertSchema<S["value"][K]> }
-//     : S extends NonCRDTArray
-//     ? NonCRDTValue[]
-//     : S extends NonCRDTString
-//     ? string
-//     : never
-//   : never;
+function validateSchema<T extends DocTypeDescription>(typeDescription: T) {
+  function validate(description: DocElementTypeDescription) {
+    if (Array.isArray(description)) {
+      if (description.length !== 1) {
+        throw new Error(
+          "Array initializer must have exactly one element to define its type."
+        );
+      }
+      validate(description[0]);
+    } else if (typeof description === "object") {
+      for (let val of Object.values(description)) {
+        validate(val);
+      }
+    } else if (
+      description !== "string" &&
+      !(
+        typeof description === "string" ||
+        typeof description === "number" ||
+        typeof description === "boolean" ||
+        typeof description === "symbol" ||
+        typeof description === "bigint" ||
+        description === null ||
+        description === undefined
+      )
+    ) {
+      throw new Error(`Unknown type initializer: ${description}`);
+    }
+  }
 
-// type PathType<T, P extends (keyof any)[]> = P extends [infer K, ...infer Rest]
-//   ? K extends keyof T
-//     ? Rest extends (keyof T[K])[]
-//       ? PathType<T[K], Rest>
-//       : T[K]
-//     : never
-//   : T;
+  for (let val of Object.values(typeDescription)) {
+    validate(val);
+  }
+}
 
-// type IsCRDT<T> = T extends { crdt: true } ? true : false;
+function isPlainObject(value: unknown): value is JSONObject {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
+}
 
-// type CRDTPath<T, P extends (keyof any)[]> = IsCRDT<PathType<T, P>> extends true
-//   ? P
-//   : never;
+function validateState<
+  S extends DocTypeDescription,
+  T = MappedTypeDescription<S>
+>(schema: S, state: unknown): state is T {
+  if (typeof state !== "object" || state === null) {
+    throw new Error(`State is not an object or is null`);
+  }
 
-// // SubscriptionMap type definition
-// type SubscriptionMap = Map<string, Set<(value: any) => void>>;
+  for (const [key, schemaValue] of Object.entries(schema)) {
+    if (!(key in state)) {
+      throw new Error(`Key '${key}' is missing in the state`);
+    }
 
-// type SharedTypeMap = Map<string, Y.Map<any> | Y.Array<any> | Y.Text>;
+    const stateValue: unknown = (state as Record<string, unknown>)[key];
 
-// export interface CRDTWrapper<S, T, U> {
-//   getState<P extends (keyof T)[]>(path: P): PathType<T, P>;
+    if (schemaValue === "string" && typeof stateValue !== "string") {
+      throw new Error(`Key '${key}' should be of type 'string'`);
+    } else if (Array.isArray(schemaValue)) {
+      if (!Array.isArray(stateValue)) {
+        throw new Error(`Key '${key}' should be an array`);
+      }
+      for (const element of stateValue as unknown[]) {
+        if (schemaValue[0] === "string") {
+          if (typeof element !== "string") {
+            throw new Error(
+              `Elements of array '${key}' should be of type 'string'`
+            );
+          }
+        } else if (typeof schemaValue[0] === "object") {
+          validateState(schemaValue[0] as DocTypeDescription, element);
+        } else if (
+          [
+            "string",
+            "number",
+            "boolean",
+            "symbol",
+            "bigint",
+            "undefined",
+          ].includes(typeof schemaValue[0])
+        ) {
+          if (typeof element !== typeof schemaValue[0]) {
+            throw new Error(
+              `Elements of array '${key}' should be of type '${typeof schemaValue[0]}'`
+            );
+          }
+        } else if (schemaValue[0] === null) {
+          if (element !== null) {
+            throw new Error(`Elements of array '${key}' should be 'null'`);
+          }
+        }
+      }
+    } else if (typeof schemaValue === "object") {
+      if (!isPlainObject(stateValue)) {
+        throw new Error(`Key '${key}' should be a plain object`);
+      }
+      validateState(schemaValue as DocTypeDescription, stateValue);
+    } else if (
+      ["string", "number", "boolean", "symbol", "bigint", "undefined"].includes(
+        typeof schemaValue
+      )
+    ) {
+      if (typeof stateValue !== typeof schemaValue) {
+        throw new Error(
+          `Key '${key}' should be of type '${typeof schemaValue}'`
+        );
+      }
+    } else if (schemaValue === null) {
+      if (stateValue !== null) {
+        throw new Error(`Key '${key}' should be 'null'`);
+      }
+    }
+  }
+  return true;
+}
 
-//   applyUpdate(update: U): void;
+export interface CRDTWrapper<
+  S extends DocTypeDescription,
+  U,
+  T = MappedTypeDescription<S>
+> {
+  yDoc: Readonly<Y.Doc>;
 
-//   update<P extends (keyof T)[]>(
-//     path: P,
-//     changeFn: (value: PathType<T, P>) => void
-//   ): void;
+  state: Readonly<T>;
 
-//   update<P extends (keyof T)[]>(
-//     path: P,
-//     changeFn: (value: PathType<T, P>) => PathType<T, P>
-//   ): void;
+  applyUpdate(update: U): void;
 
-//   subscribe<P extends (keyof T)[]>(
-//     path: CRDTPath<T, P>,
-//     callback: (value: PathType<T, P>) => void
-//   ): void;
+  update(changeFn: (value: T) => void): void;
 
-//   unsubscribe<P extends (keyof T)[]>(
-//     path: CRDTPath<T, P>,
-//     callback: (value: PathType<T, P>) => void
-//   ): void;
+  update(changeFn: (value: T) => T): void;
 
-//   dispose(): void;
-// }
+  subscribe(listener: (state: Readonly<T>) => void): void;
 
-// export class YjsDocWrapper<
-//   S extends SupportedTopLevelSchemaValue,
-//   U,
-//   T = ConvertSchema<S>
-// > implements CRDTWrapper<S, U, T>
-// {
-//   readonly #yDoc: Y.Doc;
-//   readonly #subscriptions: SubscriptionMap;
-//   readonly #sharedTypeMap: SharedTypeMap;
+  unsubscribe(listener: (state: Readonly<T>) => void): void;
 
-//   public static create<
-//     S extends SupportedTopLevelSchemaValue,
-//     U,
-//     T = ConvertSchema<S>
-//   >(schema: S, initialObject: T): YjsDocWrapper<S, U, T>;
-//   public static create<
-//     S extends SupportedTopLevelSchemaValue,
-//     U,
-//     T = ConvertSchema<S>
-//   >(fromUpdates: U[]): YjsDocWrapper<S, U, T>;
+  dispose(): void;
+}
 
-//   public static create<
-//     S extends SupportedTopLevelSchemaValue,
-//     U,
-//     T = ConvertSchema<S>
-//   >(arg0: T | U[]): YjsDocWrapper<S, U, T> {}
+export class YjsWrapper<
+  S extends DocTypeDescription,
+  U extends Uint8Array,
+  T = MappedTypeDescription<S>
+> implements CRDTWrapper<S, U, T>
+{
+  readonly #yDoc: Y.Doc;
+  readonly #subscriptions: Set<(value: T) => void>;
+  readonly #schema: S;
+  #state: T;
 
-//   constructor(yDoc: Y.Doc, schema: S) {
-//     this.#yDoc = yDoc;
-//     this.#subscriptions = new Map();
-//     this.#sharedTypeMap = new Map();
+  readonly #observeDeepFunc = (events: Y.YEvent<any>[]): void => {
+    const updatedValue = this.#applyYEvents(events);
+    this.#state = updatedValue;
+    for (const subscription of this.#subscriptions) {
+      subscription(this.#state);
+    }
+  };
 
-//     // Initialize the Yjs structures based on the schema
-//     this.initializeSharedTypes(schema, [], null);
-//   }
+  constructor(schema: S, initialObject: T);
+  constructor(schema: S, fromUpdates: U[]);
+  constructor(schema: S, initialData: T | U[]) {
+    validateSchema(schema);
 
-//   #initializeSharedTypes(schema: S): void {
-//     for (const [key, value] of Object.entries(schema)) {
-//       const topLevelValue = value as SchemaValue;
-//       // Value is an object and should be converted to a Y.Map
-//       if ("value" in topLevelValue && typeof topLevelValue.value === "object") {
-//         const yMap = this.#yDoc.getMap(key);
-//         this.#sharedTypeMap.set(key, yMap);
+    this.#yDoc = new Y.Doc();
+    this.#schema = schema;
 
-//         // Start recursively going through the object to convert values into Y.Map, Y.Array, or Y.Text
-//         for (const [nestedKey, nestedValue] of Object.entries(topLevelValue)) {
-//           yMap.set(
-//             nestedKey,
-//             initializeNestedSharedTypes(nestedValue, [key, nestedKey])
-//           );
-//         }
-//         // Value is a string and should be converted to a Y.Text
-//       } else if (
-//         "value" in topLevelValue &&
-//         typeof topLevelValue.value === "string"
-//       ) {
-//         const yText = this.#yDoc.getText(key);
-//         this.#sharedTypeMap.set(key, yText);
-//         // Value is an array and should be converted to a Y.Array
-//         // YTypes inserted into array will be tracked at runtime
-//       } else if ("values" in topLevelValue) {
-//         const yArray = this.#yDoc.getArray(key);
-//         this.#sharedTypeMap.set(key, yArray);
-//       }
-//     }
+    let state;
+    if (Array.isArray(initialData)) {
+      this.#yDoc.transact(() => {
+        for (const update of initialData) {
+          Y.applyUpdate(this.#yDoc, update);
+        }
+      });
+      state = Object.fromEntries(
+        Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
+          key,
+          sharedType.toJSON(),
+        ])
+      );
+    } else {
+      this.update(() => initialData);
+    }
 
-//     function initializeNestedSharedTypes(
-//       schema: SchemaValue | NonCRDTValue,
-//       path: (string | number)[]
-//     ): SchemaValue | NonCRDTValue {}
-//   }
+    validateState(schema, state);
+    this.#state = state as T;
+  }
 
-//   private getPathKey(path: (string | number)[]): string {
-//     return path.join(".");
-//   }
+  get yDoc(): Readonly<Y.Doc> {
+    return Object.freeze(this.#yDoc);
+  }
 
-//   // Other methods such as getState, applyUpdate, update, subscribe, unsubscribe, and dispose...
-// }
+  get state(): T {
+    return this.#state;
+  }
+
+  applyUpdates(updates: U[], validate: boolean): void {
+    this.#yDoc.transact(() => {
+      for (const update of updates) {
+        Y.applyUpdate(this.#yDoc, update);
+      }
+    });
+    if (validate) {
+      validateState(this.#schema, this.#state);
+    }
+  }
+
+  update(changeFn: (value: T) => void): void;
+
+  update(changeFn: (value: T) => T): void;
+
+  update(changeFn: ((value: T) => void) | ((value: T) => T)) {
+    const updatedValue = changeFn(this.#state);
+
+    this.#yDoc.transact(() => {
+      // We are modifying a string
+      if (typeof updatedValue !== "undefined") {
+      }
+
+      // We are modifying an object or array
+    });
+  }
+}
