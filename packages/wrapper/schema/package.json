@@ -1,0 +1,39 @@
+{
+  "name": "@crdt-wrapper/schema",
+  "version": "1.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Chandelier-02",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && tsc",
+    "prepare": "pnpm run build",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.4"
+  },
+  "keywords": [
+    "CRDT",
+    "Yjs",
+    "Real-time collaboration",
+    "Data synchronization",
+    "Conflict-free replicated data types",
+    "JavaScript",
+    "TypeScript",
+    "Shared types",
+    "Y.Map",
+    "Y.Array",
+    "Collaborative editing",
+    "Distributed systems",
+    "State management",
+    "JSON",
+    "Wrapper library"
+  ]
+}

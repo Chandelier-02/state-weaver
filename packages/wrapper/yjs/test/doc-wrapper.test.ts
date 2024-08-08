@@ -1,11 +1,8 @@
-import {
-  createYjsWrapper,
-  defineSchema,
-  MappedTypeDescription,
-  YjsWrapper,
-} from "../src/doc-wrapper-v2";
+import { createYjsWrapper, YjsWrapper } from "../src/index";
 import * as Y from "yjs";
 import { describe, expect, test, beforeEach } from "vitest";
+import { defineSchema } from "@crdt-wrapper/schema";
+import { MappedSchema } from "@crdt-wrapper/schema";
 
 describe("YjsWrapper", () => {
   const schema = defineSchema({
@@ -19,7 +16,7 @@ describe("YjsWrapper", () => {
     text: "string",
     array: ["number"],
   });
-  const initialObject: MappedTypeDescription<typeof schema> = {
+  const initialObject: MappedSchema<typeof schema> = {
     key1: "value1",
     key2: "value2",
     level1: {
@@ -441,7 +438,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
     ],
   });
 
-  const initialObject: MappedTypeDescription<typeof schema> = {
+  const initialObject: MappedSchema<typeof schema> = {
     level1: {
       level2: {
         key: "value",
@@ -589,7 +586,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
       ],
     };
 
-    wrapper.update(() => newObject as MappedTypeDescription<typeof schema>);
+    wrapper.update(() => newObject as MappedSchema<typeof schema>);
 
     expect(wrapper.state).toEqual(newObject);
   });

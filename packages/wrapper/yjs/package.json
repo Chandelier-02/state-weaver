@@ -19,6 +19,7 @@
     "@crdt-wrapper/interface": "workspace:*",
     "@crdt-wrapper/shared-types": "workspace:*",
     "@crdt-wrapper/util": "workspace:*",
+    "@crdt-wrapper/schema": "workspace:*",
     "mutative": "^1.0.8",
     "textdiff-create": "^1.1.11",
     "yjs": "^13.6.18"

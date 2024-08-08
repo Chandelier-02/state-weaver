@@ -1,12 +1,6 @@
-import {
-  CRDTCompatibleArray,
-  CRDTCompatiblePojo,
-  CRDTCompatibleValue,
-  JSONPrimitive,
-} from "@crdt-wrapper/shared-types";
-import { isJSONArray, isJSONObject, isJSONPrimitive } from "@crdt-wrapper/util";
 import * as Y from "yjs";
-import { SupportedSource } from "./types";
+import { SupportedYType } from "./types";
+import { JSONArray, JSONObject, JSONValue } from "@crdt-wrapper/shared-types";
 
 /**
  * Asserts that the provided Yjs event is supported.
@@ -34,57 +28,48 @@ export function assertSupportedEvent(event: Y.YEvent<any>): void {
   }
 }
 
-/**
- * Asserts that the provided source and object are valid for binding.
- * Throws an error if the source or object is not compatible.
- *
- * The function checks:
- * - The type of the object (must be an object or array)
- * - For arrays, the source must be a Y.Array
- * - For objects, the source must be a Y.Map and the object must be a plain object (POJO)
- *
- * @param source - The Yjs type source to check.
- * @param object - The object to validate.
- * @throws {Error} If the object or source is invalid.
- */
-export function assertSourceAndPojoAreValid(
-  source: SupportedSource,
-  object: CRDTCompatiblePojo | CRDTCompatibleArray
-): void {
-  if (typeof object !== "object") {
-    throw new Error("Invalid argument. Initial object must be of type object.");
-  }
-
-  if (Array.isArray(object)) {
-    if (!(source instanceof Y.Array)) {
-      throw new Error(
-        "Invalid argument. For an array, the source must be a Y.Array."
-      );
-    }
-  } else {
-    if (!isPojo(object)) {
-      throw new Error("Invalid argument. Initial object must be a POJO.");
-    }
-    if (!(source instanceof Y.Map)) {
-      throw new Error(
-        "Invalid argument. For an object, the source must be a Y.Map."
-      );
-    }
+export function assertSupportedYType(yType: Y.AbstractType<any>): void {
+  if (
+    !(
+      yType instanceof Y.Text ||
+      yType instanceof Y.Array ||
+      yType instanceof Y.Map
+    )
+  ) {
+    throw new Error(`Cannot handle yType ${yType.constructor.name}`);
   }
 }
 
-/**
- * Checks if the given object is a plain JavaScript object (POJO).
- *
- * @param object - The object to check.
- * @returns True if the object is a POJO, otherwise false.
- */
-function isPojo(object: unknown): object is CRDTCompatiblePojo {
-  return (
-    object !== null &&
-    typeof object === "object" &&
-    [null, Object.prototype].includes(Object.getPrototypeOf(object))
-  );
+export function createYTypes(
+  value: any,
+  yDoc: Y.Doc
+): Y.AbstractType<any> | any {
+  if (typeof value === "string") {
+    const yText = new Y.Text();
+    yText.insert(0, value);
+    return yText;
+  } else if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "symbol" ||
+    typeof value === "bigint" ||
+    value === null ||
+    value === undefined
+  ) {
+    return value;
+  } else if (Array.isArray(value)) {
+    const yArray = new Y.Array();
+    for (const item of value) {
+      yArray.push([createYTypes(item, yDoc)]);
+    }
+    return yArray;
+  } else if (typeof value === "object") {
+    const yMap = new Y.Map();
+    for (const [key, val] of Object.entries(value)) {
+      yMap.set(key, createYTypes(val, yDoc));
+    }
+    return yMap;
+  }
 }
 
 /**
@@ -94,82 +79,14 @@ function isPojo(object: unknown): object is CRDTCompatiblePojo {
  * @param v - The Yjs shared type or CRDT-compatible value to convert.
  * @returns The plain JavaScript object representation of the provided value.
  */
-export function toPojo(
-  v: SupportedSource | CRDTCompatibleValue
-): CRDTCompatibleValue {
+export function toPojo(v: SupportedYType | JSONValue): JSONValue {
   if (v instanceof Y.Map || v instanceof Y.Array || v instanceof Y.Text) {
-    return v.toJSON() as CRDTCompatiblePojo | CRDTCompatibleArray | string;
+    return v.toJSON() as JSONObject | JSONArray | string;
   } else {
     return v;
   }
 }
 
-/**
- * Converts a CRDT-compatible value to its corresponding Yjs data type.
- * This function handles the conversion of JSON primitives, arrays, objects, and strings to Yjs types.
- *
- * @param v - The CRDT-compatible value to convert.
- * @returns The corresponding Yjs data type, or undefined if the conversion is not possible.
- */
-export function toYDataType(
-  v: CRDTCompatibleValue
-): SupportedSource | Y.Text | JSONPrimitive | undefined {
-  if (isJSONPrimitive(v)) {
-    return v;
-  } else if (typeof v === "string") {
-    const text = new Y.Text();
-    applyJsonText(text, v);
-    return text;
-  } else if (isJSONArray(v)) {
-    const arr = new Y.Array();
-    applyJsonArray(arr, v);
-    return arr;
-  } else if (isJSONObject(v)) {
-    const map = new Y.Map();
-    applyJsonObject(map, v);
-    return map;
-  } else {
-    return undefined;
-  }
-}
-
-/**
- * Applies the contents of a CRDT-compatible array to a Yjs Y.Array.
- * This function maps each element of the array to its corresponding Yjs data type and pushes it to the destination Y.Array.
- *
- * @param dest - The Yjs Y.Array to which the contents will be applied.
- * @param source - The CRDT-compatible array whose contents will be mapped and applied.
- */
-export function applyJsonArray(
-  dest: Y.Array<unknown>,
-  source: CRDTCompatibleArray
-) {
-  dest.push(source.map(toYDataType));
-}
-
-/**
- * Applies the contents of a CRDT-compatible object to a Yjs Y.Map.
- * This function maps each key-value pair of the object to its corresponding Yjs data type and sets it in the destination Y.Map.
- *
- * @param dest - The Yjs Y.Map to which the contents will be applied.
- * @param source - The CRDT-compatible object whose contents will be mapped and applied.
- */
-export function applyJsonObject(
-  dest: Y.Map<unknown>,
-  source: CRDTCompatiblePojo
-) {
-  Object.entries(source).forEach(([k, v]) => {
-    dest.set(k, toYDataType(v));
-  });
-}
-
-/**
- * Applies the contents of a string to a Yjs Y.Text.
- * This function inserts the provided string into the destination Y.Text starting at the beginning.
- *
- * @param dest - The Yjs Y.Text to which the contents will be applied.
- * @param source - The string whose contents will be inserted.
- */
-export function applyJsonText(dest: Y.Text, source: string) {
-  dest.insert(0, source);
+export function isSupportedYType(v: unknown): v is SupportedYType {
+  return v instanceof Y.Map || v instanceof Y.Array || v instanceof Y.Text;
 }

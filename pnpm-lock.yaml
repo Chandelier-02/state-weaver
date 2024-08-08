@@ -20,6 +20,9 @@ importers:
 
   packages/util:
     dependencies:
+      '@crdt-wrapper/schema':
+        specifier: workspace:*
+        version: link:../wrapper/schema
       '@crdt-wrapper/shared-types':
         specifier: workspace:*
         version: link:../shared-types
@@ -38,11 +41,23 @@ importers:
         specifier: ^5.5.4
         version: 5.5.4
 
+  packages/wrapper/schema:
+    devDependencies:
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      typescript:
+        specifier: ^5.5.4
+        version: 5.5.4
+
   packages/wrapper/yjs:
     dependencies:
       '@crdt-wrapper/interface':
         specifier: workspace:*
         version: link:../interface
+      '@crdt-wrapper/schema':
+        specifier: workspace:*
+        version: link:../schema
       '@crdt-wrapper/shared-types':
         specifier: workspace:*
         version: link:../../shared-types

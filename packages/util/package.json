@@ -12,7 +12,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@crdt-wrapper/shared-types": "workspace:*"
+    "@crdt-wrapper/shared-types": "workspace:*",
+    "@crdt-wrapper/schema": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.4"
