@@ -25,7 +25,7 @@ export function assertSupportedEvent(event: Y.YEvent<any>): void {
     !(
       event instanceof Y.YMapEvent ||
       event instanceof Y.YArrayEvent ||
-      (event instanceof Y.YTextEvent && event.path.length > 1)
+      event instanceof Y.YTextEvent
     )
   ) {
     throw new Error(

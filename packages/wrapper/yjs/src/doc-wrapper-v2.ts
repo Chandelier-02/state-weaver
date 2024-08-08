@@ -1,4 +1,4 @@
-import { create, Patch } from "mutative";
+import { create, Patch, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
 import { assertSupportedEvent, toPojo } from "./util";
@@ -22,7 +22,8 @@ type PrimitiveType =
   | "symbol"
   | "bigint"
   | "null"
-  | "undefined";
+  | "undefined"
+  | "array";
 
 type DocElementTypeDescription =
   | PrimitiveType
@@ -48,7 +49,9 @@ type MapElementType<T> = T extends "string"
   ? null
   : T extends "undefined"
   ? undefined
-  : T extends (infer U)[]
+  : T extends "array"
+  ? any[]
+  : T extends [infer U]
   ? Array<MapElementType<U>>
   : T extends ReadonlyArray<infer U>
   ? Array<MapElementType<U>>
@@ -63,7 +66,7 @@ export type MappedTypeDescription<T extends DocTypeDescription> =
 
 type ImmutableTopLevel<T> = {
   [K in keyof T]: T[K];
-} & { readonly [K in keyof T as `__${K & string}`]?: never };
+};
 
 type Path = (string | number)[];
 
@@ -89,6 +92,9 @@ function validateSchema<T extends DocTypeDescription>(typeDescription: T) {
         throw new Error(
           "Array initializer must have exactly one element to define its type."
         );
+      }
+      if (description[0] === "array") {
+        return;
       }
       validate(description[0]);
     } else if (typeof description === "object") {
@@ -139,73 +145,54 @@ function validateState<
 
     const stateValue: unknown = (state as Record<string, unknown>)[key];
 
-    if (schemaValue === "string" && typeof stateValue !== "string") {
-      throw new Error(`Key '${key}' should be of type 'string'`);
+    if (typeof schemaValue === "string" && typeof stateValue !== schemaValue) {
+      throw new Error(`Key '${key}' should be of type '${schemaValue}'`);
     } else if (Array.isArray(schemaValue)) {
       if (!Array.isArray(stateValue)) {
         throw new Error(`Key '${key}' should be an array`);
       }
-      for (const element of stateValue as unknown[]) {
-        if (schemaValue[0] === "string") {
-          if (typeof element !== "string") {
-            throw new Error(
-              `Elements of array '${key}' should be of type 'string'`
-            );
-          }
-        } else if (typeof schemaValue[0] === "object") {
-          validateState(schemaValue[0] as DocTypeDescription, element);
-        } else if (
-          [
-            "string",
-            "number",
-            "boolean",
-            "symbol",
-            "bigint",
-            "undefined",
-          ].includes(typeof schemaValue[0])
-        ) {
-          if (typeof element !== typeof schemaValue[0]) {
-            throw new Error(
-              `Elements of array '${key}' should be of type '${typeof schemaValue[0]}'`
-            );
-          }
-        } else if (schemaValue[0] === null) {
-          if (element !== null) {
-            throw new Error(`Elements of array '${key}' should be 'null'`);
-          }
-        }
-      }
+      validateArray(schemaValue, stateValue, key);
     } else if (typeof schemaValue === "object") {
       if (!isPlainObject(stateValue)) {
         throw new Error(`Key '${key}' should be a plain object`);
       }
       validateState(schemaValue as DocTypeDescription, stateValue);
-    } else if (
-      ["string", "number", "boolean", "symbol", "bigint", "undefined"].includes(
-        typeof schemaValue
-      )
-    ) {
-      if (typeof stateValue !== typeof schemaValue) {
-        throw new Error(
-          `Key '${key}' should be of type '${typeof schemaValue}'`
-        );
-      }
-    } else if (schemaValue === null) {
-      if (stateValue !== null) {
-        throw new Error(`Key '${key}' should be 'null'`);
-      }
+    } else if (schemaValue === null && stateValue !== null) {
+      throw new Error(`Key '${key}' should be 'null'`);
     }
   }
   return true;
 }
 
-function convertToYType(
-  value: any,
-  path: string,
-  yDoc: Y.Doc
-): Y.AbstractType<any> | any {
+function validateArray(
+  schemaValue: DocElementTypeDescription[],
+  stateValue: unknown[],
+  key: string
+) {
+  for (const element of stateValue) {
+    if (
+      typeof schemaValue[0] === "string" &&
+      typeof element !== schemaValue[0] &&
+      schemaValue[0] !== "array"
+    ) {
+      throw new Error(
+        `Elements of array '${key}' should be of type '${schemaValue[0]}'`
+      );
+    } else if (Array.isArray(schemaValue[0]) && Array.isArray(element)) {
+      validateArray(
+        schemaValue[0] as DocElementTypeDescription[],
+        element,
+        key
+      );
+    } else if (typeof schemaValue[0] === "object") {
+      validateState(schemaValue[0] as DocTypeDescription, element);
+    }
+  }
+}
+
+function createYTypes(value: any, yDoc: Y.Doc): Y.AbstractType<any> | any {
   if (typeof value === "string") {
-    const yText = yDoc.getText(path);
+    const yText = new Y.Text();
     yText.insert(0, value);
     return yText;
   } else if (
@@ -218,31 +205,17 @@ function convertToYType(
   ) {
     return value;
   } else if (Array.isArray(value)) {
-    const yArray = yDoc.getArray(path);
-    value.forEach((item, index) => {
-      yArray.push([convertToYType(item, `${path}/${index}`, yDoc)]);
-    });
+    const yArray = new Y.Array();
+    for (const item of value) {
+      yArray.push([createYTypes(item, yDoc)]);
+    }
     return yArray;
   } else if (typeof value === "object") {
-    const yMap = yDoc.getMap(path);
+    const yMap = new Y.Map();
     for (const [key, val] of Object.entries(value)) {
-      yMap.set(key, convertToYType(val, `${path}/${key}`, yDoc));
+      yMap.set(key, createYTypes(val, yDoc));
     }
     return yMap;
-  }
-}
-
-function recurseIntoYType(
-  yType: SupportedYType,
-  level: number,
-  path: (string | number)[]
-): SupportedYType {
-  if (yType instanceof Y.Map) {
-    return recurseIntoYType(yType.get(path[level] as string), level + 1, path);
-  } else if (yType instanceof Y.Array) {
-    return recurseIntoYType(yType.get(path[level] as number), level + 1, path);
-  } else {
-    return yType;
   }
 }
 
@@ -283,9 +256,9 @@ export interface CRDTWrapper<
 
   applyUpdates(updates: U[], validate: boolean): void;
 
-  update(changeFn: (value: T) => void, validate: boolean): void;
+  update(changeFn: (value: T) => void, validate?: boolean): void;
 
-  update(changeFn: (value: T) => T, validate: boolean): void;
+  update(changeFn: (value: T) => T, validate?: boolean): void;
 
   subscribe(listener: (state: Readonly<T>) => void): void;
 
@@ -296,9 +269,10 @@ export interface CRDTWrapper<
 
 export type SupportedYType = Y.Text | Y.Array<any> | Y.Map<any>;
 
+// TODO: Create a factory function.
 export class YjsWrapper<
   S extends DocTypeDescription,
-  U extends Uint8Array,
+  U extends Uint8Array = Uint8Array,
   T = MappedTypeDescription<S>
 > implements CRDTWrapper<S, U, T>
 {
@@ -309,7 +283,7 @@ export class YjsWrapper<
   readonly #observeDeepFunc = (events: Y.YEvent<any>[]): void => {
     const updatedValue = this.#applyYEvents(events);
     for (const subscription of this.#subscriptions) {
-      subscription(updatedValue);
+      subscription(Object.freeze(updatedValue));
     }
   };
 
@@ -324,13 +298,13 @@ export class YjsWrapper<
 
     for (const [key, value] of Object.entries(schema)) {
       if (typeof value === "object" && !Array.isArray(value)) {
-        const yMap = this.#yDoc.getMap(`/${key}`);
+        const yMap = this.#yDoc.getMap(key);
         yMap.observeDeep(this.#observeDeepFunc);
       } else if (typeof value === "object" && Array.isArray(value)) {
-        const yArray = this.#yDoc.getArray(`/${key}`);
+        const yArray = this.#yDoc.getArray(key);
         yArray.observeDeep(this.#observeDeepFunc);
       } else {
-        const yText = this.#yDoc.getText(`/${key}`);
+        const yText = this.#yDoc.getText(key);
         yText.observeDeep(this.#observeDeepFunc);
       }
     }
@@ -338,7 +312,7 @@ export class YjsWrapper<
     if (Array.isArray(initialData)) {
       this.applyUpdates(initialData, true);
     } else {
-      this.update(() => initialData, true);
+      this.#initializeObject(initialData);
     }
   }
 
@@ -349,13 +323,13 @@ export class YjsWrapper<
   get state(): Readonly<T> {
     return Object.fromEntries(
       Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
-        key.replace("/", ""),
+        key,
         sharedType.toJSON(),
       ])
     ) as T;
   }
 
-  applyUpdates(updates: U[], validate: boolean): void {
+  applyUpdates(updates: U[], validate?: boolean): void {
     const state = this.state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
@@ -372,7 +346,7 @@ export class YjsWrapper<
     }
   }
 
-  update(changeFn: (value: T) => void, validate: boolean): void {
+  update(changeFn: (value: T) => void, validate?: boolean): void {
     const state = this.state;
     this.#yDoc.transact(() => {
       const [, patches] = create(state, changeFn, {
@@ -405,6 +379,18 @@ export class YjsWrapper<
     this.#yDoc.destroy();
   }
 
+  #initializeObject(object: T): void {
+    this.#yDoc.transact(() => {
+      const [, patches] = create({}, () => rawReturn(object as object), {
+        enablePatches: true,
+      });
+      for (const patch of patches) {
+        this.#applyPatch(patch);
+      }
+    });
+
+    validateState(this.#schema, this.state);
+  }
   #applyPatch(patch: Patch): void {
     const { path, op, value } = patch;
 
@@ -412,16 +398,19 @@ export class YjsWrapper<
       throw new Error("Cannot handle non-array paths. Check mutative config.");
     }
 
-    const updateYTypes = (target: SupportedYType, value: [] | {} | string) => {
+    const updateYTypesFromScratch = (
+      target: SupportedYType,
+      value: [] | {} | string
+    ) => {
       if (target instanceof Y.Map && isPlainObject(value)) {
         target.clear();
         for (const k in value) {
-          target.set(k, convertToYType(value[k], k, this.#yDoc));
+          target.set(k, createYTypes(value[k], this.#yDoc));
         }
       } else if (target instanceof Y.Array && Array.isArray(value)) {
         target.delete(0, target.length);
         for (let i = 0; i < value.length; i++) {
-          target.push([convertToYType(value[i], i.toString(), this.#yDoc)]);
+          target.push([createYTypes(value[i], this.#yDoc)]);
         }
       } else if (target instanceof Y.Text && typeof value === "string") {
         const string = target.toJSON();
@@ -446,18 +435,66 @@ export class YjsWrapper<
         } else {
           throw new Error("I have no idea how you got here");
         }
-        updateYTypes(target, subValue);
+        updateYTypesFromScratch(target, subValue);
       }
     } else if (path.length === 1) {
       for (let i = 0; i < path.length; i++) {
         const target = this.#yDoc.get(path[i] as string);
         assertSupportedYType(target);
-        updateYTypes(target as SupportedYType, value);
+        updateYTypesFromScratch(target as SupportedYType, value);
       }
     } else {
       let target = this.#yDoc.get(path[0] as string);
-      target = recurseIntoYType(target as SupportedYType, 1, path);
-      updateYTypes(target as SupportedYType, value);
+      for (let i = 1; i < path.length - 1; i++) {
+        if (target instanceof Y.Map) {
+          target = target.get(path[i] as string);
+        } else if (target instanceof Y.Array) {
+          const nextTarget = target.get(path[i] as number);
+          if (isYType(nextTarget)) {
+            target = nextTarget as SupportedYType;
+          } else {
+            break;
+          }
+        }
+      }
+      const property = path[path.length - 1];
+      if (target instanceof Y.Text) {
+        const string = target.toJSON();
+        const patches = createStringPatches(string, value);
+        this.#applyStringPatches(target, patches);
+      } else if (target instanceof Y.Map && typeof property === "string") {
+        switch (op) {
+          case "add":
+          case "replace":
+            target.set(property, createYTypes(value, this.#yDoc));
+            break;
+          case "remove":
+            target.delete(property);
+            break;
+        }
+      } else if (target instanceof Y.Array && typeof property === "number") {
+        switch (op) {
+          case "add":
+            target.insert(property, [createYTypes(value, this.#yDoc)]);
+            break;
+          case "replace":
+            target.delete(property);
+            target.insert(property, [createYTypes(value, this.#yDoc)]);
+            break;
+          case "remove":
+            target.delete(property);
+            break;
+        }
+      } else if (target instanceof Y.Array && property === "length") {
+        if (value < target.length) {
+          const diff = target.length - value;
+          target.delete(value, diff);
+        }
+      } else {
+        throw new Error(
+          `Cannot handle patch ${patch} on instance of ${target.constructor.name}`
+        );
+      }
     }
   }
 
@@ -476,33 +513,49 @@ export class YjsWrapper<
   }
 
   #applyYEvents(events: Y.YEvent<any>[]): T {
-    return create(this.state, () => {
+    return create(this.state, (target) => {
       for (const event of events) {
         assertSupportedEvent(event);
-        this.#applyYEvent(this.state, event);
+        let base: any = target;
+        for (const [key, yType] of this.#yDoc.share) {
+          if (yType === event.currentTarget) {
+            base = base[key];
+            break;
+          }
+        }
+        if (event.path.length > 2) {
+          base = recurseIntoObject(
+            base,
+            event.path.slice(1)
+          ) as SubStructure<T>;
+        }
+        this.#applyYEvent(base, event);
       }
     });
   }
 
-  #applyYEvent(base: T, event: Y.YEvent<any>): T {
-    let subStructure = recurseIntoObject(base, event.path) as SubStructure<T>;
+  // I need to check if the event is from a remote source. If so, all top-level array
+  // modifications need to clear the state and then replace it.
+  // I am worried about the performance implications of this.
 
-    if (event instanceof Y.YMapEvent && isPlainObject(subStructure)) {
+  // TODO: I need to fix this signature
+  #applyYEvent(base: T, event: Y.YEvent<any>): T {
+    if (event instanceof Y.YMapEvent && isPlainObject(base)) {
       const source = event.target as Y.Map<any>;
 
       for (const [key, change] of event.changes.keys) {
         switch (change.action) {
           case "add":
           case "update":
-            (subStructure as JSONObject)[key] = toPojo(source.get(key));
+            (base as JSONObject)[key] = toPojo(source.get(key));
             break;
           case "delete":
-            delete (subStructure as JSONObject)[key];
+            delete (base as JSONObject)[key];
             break;
         }
       }
-    } else if (event instanceof Y.YArrayEvent && Array.isArray(subStructure)) {
-      const arr = subStructure as any[];
+    } else if (event instanceof Y.YArrayEvent && Array.isArray(base)) {
+      const arr = base as any[];
 
       let retain = 0;
       for (const change of event.changes.delta) {
@@ -521,11 +574,8 @@ export class YjsWrapper<
           retain += change.insert.length;
         }
       }
-    } else if (
-      event instanceof Y.YTextEvent &&
-      typeof subStructure === "string"
-    ) {
-      subStructure = this.#applyYTextEvent(subStructure, event) as any;
+    } else if (event instanceof Y.YTextEvent && typeof base === "string") {
+      base = this.#applyYTextEvent(base, event) as any;
     }
 
     return base;
@@ -548,6 +598,7 @@ export class YjsWrapper<
           ? change.insert.join("")
           : change.insert;
         text = text.slice(0, retain) + insertText + text.slice(retain);
+        text = insertText;
         retain += insertText.length;
       }
     }
