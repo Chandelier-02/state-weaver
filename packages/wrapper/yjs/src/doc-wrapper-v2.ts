@@ -245,6 +245,12 @@ function assertSupportedYType(yType: Y.AbstractType<any>): void {
   }
 }
 
+function isUint8ArrayArray<T, U>(data: T | U[]): data is U[] {
+  return (
+    Array.isArray(data) && data.every((item) => item instanceof Uint8Array)
+  );
+}
+
 export interface CRDTWrapper<
   S extends DocTypeDescription,
   U,
@@ -269,6 +275,26 @@ export interface CRDTWrapper<
 
 export type SupportedYType = Y.Text | Y.Array<any> | Y.Map<any>;
 
+export function createYjsWrapper<S extends DocTypeDescription>(
+  schema: S,
+  initialData: MappedTypeDescription<S> | Uint8Array[]
+): YjsWrapper<S, Uint8Array, MappedTypeDescription<S>> {
+  if (
+    Array.isArray(initialData) &&
+    initialData.every((item) => item instanceof Uint8Array)
+  ) {
+    return new YjsWrapper<S, Uint8Array, MappedTypeDescription<S>>(
+      schema,
+      initialData as Uint8Array[]
+    );
+  } else {
+    return new YjsWrapper<S, Uint8Array, MappedTypeDescription<S>>(
+      schema,
+      initialData as MappedTypeDescription<S>
+    );
+  }
+}
+
 // TODO: Create a factory function.
 export class YjsWrapper<
   S extends DocTypeDescription,
@@ -281,7 +307,10 @@ export class YjsWrapper<
   readonly #schema: S;
 
   readonly #observeDeepFunc = (events: Y.YEvent<any>[]): void => {
-    const updatedValue = this.#applyYEvents(events);
+    const nonLocalEvents = events.filter(
+      (event) => event.currentTarget.doc?.clientID !== this.#yDoc.clientID
+    );
+    const updatedValue = this.#applyYEvents(nonLocalEvents);
     for (const subscription of this.#subscriptions) {
       subscription(Object.freeze(updatedValue));
     }
@@ -309,15 +338,15 @@ export class YjsWrapper<
       }
     }
 
-    if (Array.isArray(initialData)) {
+    if (isUint8ArrayArray(initialData)) {
       this.applyUpdates(initialData, true);
     } else {
-      this.#initializeObject(initialData);
+      this.#initializeObject(initialData as T);
     }
   }
 
   get yDoc(): Readonly<Y.Doc> {
-    return Object.freeze(this.#yDoc);
+    return this.#yDoc;
   }
 
   get state(): Readonly<T> {
@@ -534,11 +563,7 @@ export class YjsWrapper<
     });
   }
 
-  // I need to check if the event is from a remote source. If so, all top-level array
-  // modifications need to clear the state and then replace it.
-  // I am worried about the performance implications of this.
-
-  // TODO: I need to fix this signature
+  // I need to fix this function signature
   #applyYEvent(base: T, event: Y.YEvent<any>): T {
     if (event instanceof Y.YMapEvent && isPlainObject(base)) {
       const source = event.target as Y.Map<any>;
