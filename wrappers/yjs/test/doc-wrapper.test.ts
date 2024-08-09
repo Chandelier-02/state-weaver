@@ -1,4 +1,4 @@
-import { createYjsWrapper, YjsWrapper } from "../src/index";
+import { YjsWrapper } from "../src/index";
 import * as Y from "yjs";
 import { describe, expect, test, beforeEach } from "vitest";
 
@@ -34,7 +34,7 @@ describe("YjsWrapper", () => {
   });
 
   test("wrap method with object replacement", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.key1 = "newValue";
@@ -50,7 +50,7 @@ describe("YjsWrapper", () => {
   });
 
   test("deep object modifications", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.key = "newValue";
@@ -60,7 +60,7 @@ describe("YjsWrapper", () => {
   });
 
   test("replace entire object", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     const newObject = {
       key1: "newKey1",
@@ -81,7 +81,7 @@ describe("YjsWrapper", () => {
 
   describe("Local string modifications", () => {
     test("basic string replacement", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text.replace("world", "user");
@@ -91,7 +91,7 @@ describe("YjsWrapper", () => {
     });
 
     test("string appending", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text + ", world!";
@@ -101,7 +101,7 @@ describe("YjsWrapper", () => {
     });
 
     test("string truncation", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text.substring(0, 5);
@@ -124,7 +124,7 @@ describe("YjsWrapper", () => {
     });
 
     test("string replacement with empty", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = "";
@@ -136,7 +136,7 @@ describe("YjsWrapper", () => {
 
   describe("Array modifications", () => {
     test("push item to array", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.push(4);
@@ -146,7 +146,7 @@ describe("YjsWrapper", () => {
     });
 
     test("splice item from array", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(1, 1);
@@ -156,7 +156,7 @@ describe("YjsWrapper", () => {
     });
 
     test("replace array items", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(0, 2, 4, 5);
@@ -166,7 +166,7 @@ describe("YjsWrapper", () => {
     });
 
     test("clear array", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(0, snapshot.array.length);
@@ -176,7 +176,7 @@ describe("YjsWrapper", () => {
     });
 
     test("push multiple items", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.push(4, 5, 6);
@@ -198,7 +198,7 @@ describe("YjsWrapper", () => {
     });
 
     test("replace entire array", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array = [7, 8, 9];
@@ -257,7 +257,7 @@ describe("YjsWrapper", () => {
 
   describe("Subscription handling", () => {
     test("subscribe method calls listener on state change", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let latestSnapshot: any;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -275,7 +275,7 @@ describe("YjsWrapper", () => {
     });
 
     test("unsubscribe method prevents listener from being called", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let callCount = 0;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -300,7 +300,7 @@ describe("YjsWrapper", () => {
     });
 
     test("multiple listeners receive updates", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let listener1CallCount = 0;
       const listener1 = (snapshot: Readonly<typeof initialObject>) => {
@@ -335,7 +335,7 @@ describe("YjsWrapper", () => {
 
   describe("Read-only snapshot enforcement", () => {
     test("attempting to modify the snapshot object directly has no effect", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let latestSnapshot: any;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -352,7 +352,7 @@ describe("YjsWrapper", () => {
     });
 
     test("attempting to add properties to the snapshot object throws an error", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let latestSnapshot: any;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -369,7 +369,7 @@ describe("YjsWrapper", () => {
     });
 
     test("attempting to delete properties from the snapshot object throws an error", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let latestSnapshot: any;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -386,7 +386,7 @@ describe("YjsWrapper", () => {
     });
 
     test("modifications through update function reflect in the snapshot but not directly modifying the snapshot", () => {
-      const wrapper = createYjsWrapper(schema, initialObject);
+      const wrapper = new YjsWrapper(schema, initialObject);
 
       let latestSnapshot: any;
       const listener = (snapshot: Readonly<typeof initialObject>) => {
@@ -466,7 +466,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   };
 
   test("deeply nested object modifications", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.level4[2] =
@@ -479,7 +479,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("deeply nested array modifications", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.array[0].nestedArray[0].deeperArray.push(4, 5, 6);
@@ -491,7 +491,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("nested object within array modification", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.array[0].nestedArray[0].key = "newNestedArrayValue";
@@ -503,7 +503,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("nested array within object modification", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.key = "newNestedValue";
@@ -515,7 +515,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("replace deeply nested object", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2 = {
@@ -543,7 +543,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("deep nested structure updates", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.level4[1] = "changed";
@@ -557,7 +557,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("replace entire object", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     const newObject = {
       level1: {
@@ -601,7 +601,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   };
 
   test("basic text replacement", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace("world", "user");
@@ -611,7 +611,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("inserting text at the beginning", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "Hi, " + snapshot.text;
@@ -621,7 +621,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("inserting text at the end", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text + " How are you?";
@@ -631,7 +631,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("inserting text in the middle", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf("world");
@@ -645,7 +645,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("removing text from the beginning", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.substring(7);
@@ -655,7 +655,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("removing text from the end", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.slice(0, -7);
@@ -665,7 +665,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("removing text from the middle", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace(", world", "");
@@ -675,7 +675,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("replacing all text", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "Goodbye, world!";
@@ -685,7 +685,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("replacing text with empty string", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "";
@@ -695,7 +695,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("complex text manipulation", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.toUpperCase();
@@ -711,7 +711,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("replacing a single character", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf("H");
@@ -725,7 +725,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("removing a single character", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf(",");
@@ -737,7 +737,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("adding multiple lines of text", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += "\nHow are you?\nI am fine.";
@@ -747,7 +747,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("replacing text with multiple lines", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "First line\nSecond line\nThird line";
@@ -757,7 +757,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("appending text with special characters", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += " $%^&*()!";
@@ -767,7 +767,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("removing text with special characters", () => {
-    const wrapper = createYjsWrapper(schema, {
+    const wrapper = new YjsWrapper(schema, {
       text: "Special characters $%^&*()!",
     });
 
@@ -779,7 +779,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("replacing part of a string with another string", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace("world", "everyone");
@@ -789,7 +789,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("handling empty initial text", () => {
-    const wrapper = createYjsWrapper(schema, { text: "" });
+    const wrapper = new YjsWrapper(schema, { text: "" });
 
     wrapper.update((snapshot) => {
       snapshot.text = "New text added!";
@@ -799,7 +799,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("handling large text insertions", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += " ".repeat(1000) + "End";
@@ -809,7 +809,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
   });
 
   test("handling repeated text modifications", () => {
-    const wrapper = createYjsWrapper(schema, initialObject);
+    const wrapper = new YjsWrapper(schema, initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text + " again";
@@ -849,13 +849,13 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update", () => {
     // Create the initial wrapper
-    const originalWrapper = createYjsWrapper(schema, initialObject);
+    const originalWrapper = new YjsWrapper(schema, initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
     const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
-    const newWrapper = createYjsWrapper(schema, [stateUpdate]);
+    const newWrapper = new YjsWrapper(schema, [stateUpdate]);
 
     // Both wrappers should have the same state
     expect(newWrapper.state).toEqual(originalWrapper.state);
@@ -863,7 +863,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update and apply additional changes", () => {
     // Create the initial wrapper
-    const originalWrapper = createYjsWrapper(schema, initialObject);
+    const originalWrapper = new YjsWrapper(schema, initialObject);
 
     // Make some updates to the original wrapper
     originalWrapper.update((snapshot) => {
@@ -875,7 +875,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
-    const newWrapper = createYjsWrapper(schema, [stateUpdate]);
+    const newWrapper = new YjsWrapper(schema, [stateUpdate]);
 
     // The new wrapper should reflect the changes made to the original wrapper
     expect(newWrapper.state).toEqual({
@@ -893,7 +893,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update with nested object modifications", () => {
     // Create the initial wrapper
-    const originalWrapper = createYjsWrapper(schema, initialObject);
+    const originalWrapper = new YjsWrapper(schema, initialObject);
 
     // Modify nested objects
     originalWrapper.update((snapshot) => {
@@ -904,7 +904,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
-    const newWrapper = createYjsWrapper(schema, [stateUpdate]);
+    const newWrapper = new YjsWrapper(schema, [stateUpdate]);
 
     // Both wrappers should have the same state, including nested modifications
     expect(newWrapper.state).toEqual({
@@ -922,7 +922,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("apply update to new wrapper and make further modifications", () => {
     // Create the initial wrapper
-    const originalWrapper = createYjsWrapper(schema, initialObject);
+    const originalWrapper = new YjsWrapper(schema, initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
     const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
@@ -976,7 +976,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   };
 
   test("synchronize deep object modifications between wrappers", () => {
-    const wrapper1 = createYjsWrapper(schema, initialObject);
+    const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof schema>(schema, [
@@ -1004,10 +1004,10 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize array modifications between wrappers", () => {
-    const wrapper1 = createYjsWrapper(schema, initialObject);
+    const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = createYjsWrapper(schema, [wrapper1InitialUpdate]);
+    const wrapper2 = new YjsWrapper(schema, [wrapper1InitialUpdate]);
 
     const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
 
@@ -1059,10 +1059,10 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("apply multiple updates to synchronize wrappers", () => {
-    const wrapper1 = createYjsWrapper(schema, initialObject);
+    const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = createYjsWrapper(schema, [wrapper1InitialUpdate]);
+    const wrapper2 = new YjsWrapper(schema, [wrapper1InitialUpdate]);
 
     const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
 
@@ -1137,10 +1137,10 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize interleaved deep object modifications between wrappers", () => {
-    const wrapper1 = createYjsWrapper(schema, initialObject);
+    const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = createYjsWrapper(schema, [wrapper1InitialUpdate]);
+    const wrapper2 = new YjsWrapper(schema, [wrapper1InitialUpdate]);
 
     const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
     const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
@@ -1171,7 +1171,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize interleaved array modifications between wrappers", () => {
-    const wrapper1 = createYjsWrapper(schema, initialObject);
+    const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof schema>(schema, [

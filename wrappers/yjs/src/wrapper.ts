@@ -22,34 +22,13 @@ import {
   SubStructure,
   JSONObject,
 } from "../../shared/src";
-import { SupportedYType } from "./types";
-
-export function createYjsWrapper<S extends Schema>(
-  schema: S,
-  initialData: MappedSchema<S> | Uint8Array[]
-): YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>> {
-  if (
-    Array.isArray(initialData) &&
-    initialData.every((item) => item instanceof Uint8Array)
-  ) {
-    return new YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>>(
-      schema,
-      initialData as Uint8Array[]
-    );
-  } else {
-    return new YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>>(
-      schema,
-      initialData as MappedSchema<S>
-    );
-  }
-}
+import { InitialDataType, SupportedYType } from "./types";
 
 export class YjsWrapper<
   S extends Schema,
-  U extends Uint8Array = Uint8Array,
   D extends Y.Doc = Y.Doc,
   T = MappedSchema<S>
-> implements CRDTWrapper<S, U, D, T>
+> implements CRDTWrapper<S, Uint8Array, D, T>
 {
   readonly #yDoc: Readonly<D>;
   readonly #subscriptions: Set<(value: T) => void>;
@@ -65,9 +44,7 @@ export class YjsWrapper<
     }
   };
 
-  constructor(schema: S, initialObject: T);
-  constructor(schema: S, fromUpdates: U[]);
-  constructor(schema: S, initialData: T | U[]) {
+  constructor(schema: S, initialData: InitialDataType<S>) {
     validateSchema(schema);
 
     this.#yDoc = new Y.Doc() as D;
@@ -107,7 +84,7 @@ export class YjsWrapper<
     ) as T;
   }
 
-  applyUpdates(updates: U[], validate?: boolean): void {
+  applyUpdates(updates: Uint8Array[], validate?: boolean): void {
     const state = this.state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
