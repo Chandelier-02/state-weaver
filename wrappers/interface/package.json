@@ -8,8 +8,7 @@
   "license": "MIT",
   "description": "A TypeScript interface for binding Conflict-free Replicated Data Types (CRDTs) to plain JavaScript objects, providing synchronization and state management utilities.",
   "dependencies": {
-    "@crdt-wrapper/schema": "workspace:*",
-    "yjs": "^13.6.18"
+    "@crdt-wrapper/schema": "workspace:*"
   },
   "scripts": {
     "build": "pnpm run clean && tsup",

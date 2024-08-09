@@ -27,17 +27,17 @@ import { SupportedYType } from "./types";
 export function createYjsWrapper<S extends Schema>(
   schema: S,
   initialData: MappedSchema<S> | Uint8Array[]
-): YjsWrapper<S, Uint8Array, MappedSchema<S>> {
+): YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>> {
   if (
     Array.isArray(initialData) &&
     initialData.every((item) => item instanceof Uint8Array)
   ) {
-    return new YjsWrapper<S, Uint8Array, MappedSchema<S>>(
+    return new YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>>(
       schema,
       initialData as Uint8Array[]
     );
   } else {
-    return new YjsWrapper<S, Uint8Array, MappedSchema<S>>(
+    return new YjsWrapper<S, Uint8Array, Y.Doc, MappedSchema<S>>(
       schema,
       initialData as MappedSchema<S>
     );
@@ -47,10 +47,11 @@ export function createYjsWrapper<S extends Schema>(
 export class YjsWrapper<
   S extends Schema,
   U extends Uint8Array = Uint8Array,
+  D extends Y.Doc = Y.Doc,
   T = MappedSchema<S>
-> implements CRDTWrapper<S, U, T>
+> implements CRDTWrapper<S, U, D, T>
 {
-  readonly #yDoc: Y.Doc;
+  readonly #yDoc: Readonly<D>;
   readonly #subscriptions: Set<(value: T) => void>;
   readonly #schema: S;
 
@@ -69,7 +70,7 @@ export class YjsWrapper<
   constructor(schema: S, initialData: T | U[]) {
     validateSchema(schema);
 
-    this.#yDoc = new Y.Doc();
+    this.#yDoc = new Y.Doc() as D;
     this.#schema = schema;
     this.#subscriptions = new Set();
 
@@ -93,7 +94,7 @@ export class YjsWrapper<
     }
   }
 
-  get yDoc(): Readonly<Y.Doc> {
+  get yDoc(): Readonly<D> {
     return this.#yDoc;
   }
 
