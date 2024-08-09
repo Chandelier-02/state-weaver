@@ -9,6 +9,7 @@
   "dependencies": {
     "@crdt-wrapper/schema": "workspace:^"
   },
+  "files": ["dist"],
   "scripts": {
     "build": "pnpm run clean && tsup",
     "dev": "tsup --watch",
