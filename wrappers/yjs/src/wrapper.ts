@@ -1,4 +1,4 @@
-import { create, Patch, rawReturn } from "mutative";
+import { create, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
 import {
@@ -26,9 +26,9 @@ import { InitialDataType, SupportedYType } from "./types";
 
 export class YjsWrapper<
   S extends Schema,
-  D extends Y.Doc = Y.Doc,
-  T = MappedSchema<S>
-> implements CRDTWrapper<S, Uint8Array, D, T>
+  T extends MappedSchema<S>,
+  D extends Y.Doc = Y.Doc
+> implements CRDTWrapper<S, T, D, Uint8Array>
 {
   readonly #yDoc: Readonly<D>;
   readonly #subscriptions: Set<(value: T) => void>;

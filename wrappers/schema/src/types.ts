@@ -38,7 +38,7 @@ type MapElementType<T> = T extends "string"
   : never;
 
 export type MappedSchema<T extends Schema> = Simplify<{
-  [P in keyof T]: MapElementType<T[P]>;
+  [P in keyof T]: Simplify<MapElementType<T[P]>>;
 }>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};

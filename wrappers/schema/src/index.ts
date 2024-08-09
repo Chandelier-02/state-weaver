@@ -118,12 +118,3 @@ function validateArray(
 }
 
 export type { Schema, MappedSchema } from "./types";
-
-const schema = defineSchema({
-  array: [[{ bruh: "string" }]],
-  object: {
-    textOnObject: "string",
-    arrayOnObject: ["bigint"],
-  },
-});
-type SchemaType = MappedSchema<typeof schema>;

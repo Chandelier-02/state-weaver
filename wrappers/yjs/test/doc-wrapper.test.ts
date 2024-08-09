@@ -586,7 +586,7 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
       ],
     };
 
-    wrapper.update(() => newObject as MappedSchema<typeof schema>);
+    wrapper.update(() => newObject);
 
     expect(wrapper.state).toEqual(newObject);
   });
@@ -928,7 +928,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
-    const newWrapper = new YjsWrapper<typeof schema>(schema, [stateUpdate]);
+    const newWrapper = new YjsWrapper(schema, [stateUpdate]);
 
     // Further modify the new wrapper
     newWrapper.update((snapshot) => {
@@ -979,9 +979,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = new YjsWrapper<typeof schema>(schema, [
-      wrapper1InitialUpdate,
-    ]);
+    const wrapper2 = new YjsWrapper(schema, [wrapper1InitialUpdate]);
 
     const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
 
@@ -1174,9 +1172,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(schema, initialObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = new YjsWrapper<typeof schema>(schema, [
-      wrapper1InitialUpdate,
-    ]);
+    const wrapper2 = new YjsWrapper(schema, [wrapper1InitialUpdate]);
 
     const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
     const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
@@ -1213,10 +1209,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(nestedArraySchema, nestedArrayObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = new YjsWrapper<typeof nestedArraySchema>(
-      nestedArraySchema,
-      [wrapper1InitialUpdate]
-    );
+    const wrapper2 = new YjsWrapper(nestedArraySchema, [wrapper1InitialUpdate]);
 
     const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
     const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
@@ -1268,9 +1261,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(deepSchema, deepObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    const wrapper2 = new YjsWrapper<typeof deepSchema>(deepSchema, [
-      wrapper1InitialUpdate,
-    ]);
+    const wrapper2 = new YjsWrapper(deepSchema, [wrapper1InitialUpdate]);
 
     const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
     const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
