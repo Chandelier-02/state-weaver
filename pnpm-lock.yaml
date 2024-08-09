@@ -27,7 +27,7 @@ importers:
   wrappers/interface:
     dependencies:
       '@crdt-wrapper/schema':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../schema
 
   wrappers/schema: {}
