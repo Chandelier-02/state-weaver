@@ -12,10 +12,12 @@
     "yjs": "^13.6.18"
   },
   "scripts": {
-    "build": "pnpm run clean && tsc",
+    "build": "pnpm run clean && tsup",
+    "dev": "tsup --watch",
     "clean": "rimraf dist"
   },
-  "keywords": [  "CRDT",
+  "keywords": [  
+    "CRDT",
     "Conflict-free Replicated Data Type",
     "TypeScript",
     "JavaScript",

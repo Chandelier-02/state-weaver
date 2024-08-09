@@ -8,7 +8,8 @@
   "license": "MIT",
   "description": "A TypeScript library that provides a wrapper around Yjs shared types, facilitating easy interaction with Yjs CRDTs (Conflict-free Replicated Data Types) using plain JavaScript objects. It supports synchronization, updates, and observing changes within the CRDT framework, enabling efficient management and manipulation of shared data in real-time collaborative applications.",
   "scripts": {
-    "build": "pnpm run clean && tsc",
+    "build": "pnpm run clean && tsup",
+    "dev": "tsup --watch",
     "test": "vitest",
     "clean": "rimraf dist"
   },

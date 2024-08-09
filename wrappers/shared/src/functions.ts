@@ -1,4 +1,4 @@
-import type { JSONObject, Path, RecurseIntoObject } from "../types/index";
+import { JSONObject, Path, RecurseIntoObject } from "./types";
 
 export function isPlainObject(value: unknown): value is JSONObject {
   return (

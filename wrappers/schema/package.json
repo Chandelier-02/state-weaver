@@ -10,7 +10,8 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "pnpm run clean && tsc",
+    "build": "pnpm run clean && tsup",
+    "dev": "tsup --watch",
     "clean": "rimraf dist"
   },
   "dependencies": {
