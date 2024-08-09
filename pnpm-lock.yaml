@@ -24,7 +24,11 @@ importers:
         specifier: ^2.0.5
         version: 2.0.5
 
-  wrappers/interface: {}
+  wrappers/interface:
+    dependencies:
+      '@crdt-wrapper/schema':
+        specifier: workspace:^
+        version: link:../schema
 
   wrappers/schema: {}
 
@@ -35,6 +39,9 @@ importers:
       '@crdt-wrapper/interface':
         specifier: workspace:^
         version: link:../interface
+      '@crdt-wrapper/schema':
+        specifier: workspace:^
+        version: link:../schema
       mutative:
         specifier: ^1.0.8
         version: 1.0.8

@@ -13,7 +13,7 @@ import {
   Schema,
   validateSchema,
   validateStateAgainstSchema,
-} from "../../schema";
+} from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
 import {
   isPlainObject,

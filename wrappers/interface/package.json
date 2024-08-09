@@ -1,7 +1,7 @@
 {
   "name": "@crdt-wrapper/interface",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "types": "index.d.ts",
   "author": "Chandelier-02",
   "license": "MIT",
@@ -11,6 +11,10 @@
     "dev": "tsup --watch",
     "clean": "rimraf dist"
   },
+  "dependencies": {
+    "@crdt-wrapper/schema": "workspace:^"
+  },
+  "files": ["dist"],
   "keywords": [  
     "CRDT",
     "Conflict-free Replicated Data Type",
