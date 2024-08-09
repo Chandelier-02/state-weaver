@@ -30,19 +30,12 @@ importers:
         specifier: workspace:*
         version: link:../schema
 
-  wrappers/schema:
-    dependencies:
-      shared:
-        specifier: workspace:*
-        version: link:../shared
+  wrappers/schema: {}
 
   wrappers/shared: {}
 
   wrappers/yjs:
     dependencies:
-      '@crdt-wrapper/interface':
-        specifier: workspace:*
-        version: link:../interface
       '@crdt-wrapper/schema':
         specifier: workspace:*
         version: link:../schema

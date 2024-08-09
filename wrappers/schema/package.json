@@ -1,6 +1,6 @@
 {
   "name": "@crdt-wrapper/schema",
-  "version": "1.0.0-beta",
+  "version": "1.0.1-beta",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -14,9 +14,7 @@
     "dev": "tsup --watch",
     "clean": "rimraf dist"
   },
-  "dependencies": {
-    "shared": "workspace:*"
-  },
+  "dependencies": {},
   "keywords": [
     "CRDT",
     "Yjs",
