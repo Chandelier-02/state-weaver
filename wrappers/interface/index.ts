@@ -1,4 +1,4 @@
-import type { Schema, MappedSchema } from "@crdt-wrapper/schema";
+import type { Schema, MappedSchema } from "../schema";
 
 export interface CRDTWrapper<S extends Schema, U, D, T = MappedSchema<S>> {
   yDoc: Readonly<D>;

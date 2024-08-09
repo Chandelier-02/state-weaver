@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["cjs", "esm"],
   dts: true,
   bundle: true,
-  noExternal: ["shared", "interface"],
+  noExternal: ["shared", "schema"],
 });

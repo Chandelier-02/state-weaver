@@ -1,8 +1,8 @@
 import { createYjsWrapper, YjsWrapper } from "../src/index";
 import * as Y from "yjs";
 import { describe, expect, test, beforeEach } from "vitest";
-import { defineSchema } from "@crdt-wrapper/schema";
-import { MappedSchema } from "@crdt-wrapper/schema";
+
+import { defineSchema, MappedSchema } from "../../schema";
 
 describe("YjsWrapper", () => {
   const schema = defineSchema({

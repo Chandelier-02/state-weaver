@@ -13,8 +13,8 @@ import {
   Schema,
   validateSchema,
   validateStateAgainstSchema,
-} from "@crdt-wrapper/schema";
-import { CRDTWrapper } from "../../interface";
+} from "../../schema";
+import { CRDTWrapper } from "@crdt-wrapper/interface";
 import {
   isPlainObject,
   isUint8ArrayArray,

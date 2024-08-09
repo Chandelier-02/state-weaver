@@ -1,6 +1,6 @@
 {
   "name": "@crdt-wrapper/yjs",
-  "version": "1.0.2-beta",
+  "version": "1.0.3-beta",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Chandelier-02",
@@ -13,11 +13,12 @@
     "test": "vitest",
     "clean": "rimraf dist"
   },
+  "files": ["dist"],
   "dependencies": {
     "mutative": "^1.0.8",
     "textdiff-create": "^1.1.11",
     "yjs": "^13.6.18",
-    "@crdt-wrapper/schema": "workspace:^"
+    "@crdt-wrapper/interface": "workspace:^"
   },
   "devDependencies": {
     "@types/textdiff-create": "^1.0.2"
