@@ -1,0 +1,14 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Shared utility functions and types",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "pnpm run clean && tsc",
+    "clean": "rimraf dist"
+  },
+  "license": "MIT"
+}

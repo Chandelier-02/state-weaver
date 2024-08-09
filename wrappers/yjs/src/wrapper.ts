@@ -8,17 +8,21 @@ import {
   isSupportedYType,
   toPojo,
 } from "./util";
-import { MappedSchema, Schema } from "@crdt-wrapper/schema";
-import { validateSchema } from "@crdt-wrapper/schema";
-import { CRDTWrapper } from "@crdt-wrapper/interface";
+import {
+  MappedSchema,
+  Schema,
+  validateSchema,
+  validateStateAgainstSchema,
+} from "@crdt-wrapper/schema";
+import { CRDTWrapper } from "../../interface";
 import {
   isPlainObject,
   isUint8ArrayArray,
   recurseIntoObject,
-  validateState,
-} from "@crdt-wrapper/util";
+  SubStructure,
+  JSONObject,
+} from "../../shared/src";
 import { SupportedYType } from "./types";
-import { SubStructure, JSONObject } from "@crdt-wrapper/shared-types";
 
 export function createYjsWrapper<S extends Schema>(
   schema: S,
@@ -111,7 +115,7 @@ export class YjsWrapper<
     });
     if (validate) {
       try {
-        validateState(this.#schema, this.state);
+        validateStateAgainstSchema(this.#schema, this.state);
       } catch (e) {
         this.update(() => state, false);
         throw e;
@@ -132,7 +136,7 @@ export class YjsWrapper<
 
     if (validate) {
       try {
-        validateState(this.#schema, this.state);
+        validateStateAgainstSchema(this.#schema, this.state);
       } catch (e) {
         this.update(() => state, false);
         throw e;
@@ -162,7 +166,7 @@ export class YjsWrapper<
       }
     });
 
-    validateState(this.#schema, this.state);
+    validateStateAgainstSchema(this.#schema, this.state);
   }
   #applyPatch(patch: Patch): void {
     const { path, op, value } = patch;

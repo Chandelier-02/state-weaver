@@ -1,6 +1,6 @@
 import * as Y from "yjs";
 import { SupportedYType } from "./types";
-import { JSONArray, JSONObject, JSONValue } from "@crdt-wrapper/shared-types";
+import { JSONArray, JSONObject, JSONValue } from "../../shared/src/types";
 
 /**
  * Asserts that the provided Yjs event is supported.

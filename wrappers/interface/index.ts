@@ -1,13 +1,7 @@
-import {
-  DocTypeDescription,
-  MappedTypeDescription,
-} from "@crdt-wrapper/shared-types";
+import type { Schema, MappedSchema } from "@crdt-wrapper/schema";
+import * as Y from "yjs";
 
-export interface CRDTWrapper<
-  S extends DocTypeDescription,
-  U,
-  T = MappedTypeDescription<S>
-> {
+export interface CRDTWrapper<S extends Schema, U, T = MappedSchema<S>> {
   yDoc: Readonly<Y.Doc>;
 
   state: Readonly<T>;

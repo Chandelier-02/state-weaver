@@ -1,18 +1,51 @@
-import {
-  MappedSchema,
-  Schema,
-  SchemaElement,
-} from "@crdt-wrapper/schema/dist/types";
-import {
-  JSONObject,
-  Path,
-  RecurseIntoObject,
-} from "@crdt-wrapper/shared-types";
+import { isPlainObject } from "../../shared/src";
+import { MappedSchema, Schema, SchemaElement } from "./types";
 
-export function validateState<S extends Schema, T = MappedSchema<S>>(
-  schema: S,
-  state: unknown
-): state is T {
+export function defineSchema<T extends Schema>(schema: T): T {
+  return schema;
+}
+
+export function validateSchema<T extends Schema>(typeDescription: T) {
+  function validate(description: SchemaElement) {
+    if (Array.isArray(description)) {
+      if (description.length !== 1) {
+        throw new Error(
+          "Array initializer must have exactly one element to define its type."
+        );
+      }
+      if (description[0] === "array") {
+        return;
+      }
+      validate(description[0]);
+    } else if (typeof description === "object") {
+      for (let val of Object.values(description)) {
+        validate(val);
+      }
+    } else if (
+      description !== "string" &&
+      !(
+        typeof description === "string" ||
+        typeof description === "number" ||
+        typeof description === "boolean" ||
+        typeof description === "symbol" ||
+        typeof description === "bigint" ||
+        description === null ||
+        description === undefined
+      )
+    ) {
+      throw new Error(`Unknown type initializer: ${description}`);
+    }
+  }
+
+  for (let val of Object.values(typeDescription)) {
+    validate(val);
+  }
+}
+
+export function validateStateAgainstSchema<
+  S extends Schema,
+  T = MappedSchema<S>
+>(schema: S, state: unknown): state is T {
   if (typeof state !== "object" || state === null) {
     throw new Error(`State is not an object or is null`);
   }
@@ -35,7 +68,7 @@ export function validateState<S extends Schema, T = MappedSchema<S>>(
       if (!isPlainObject(stateValue)) {
         throw new Error(`Key '${key}' should be a plain object`);
       }
-      validateState(schemaValue as Schema, stateValue);
+      validateStateAgainstSchema(schemaValue as Schema, stateValue);
     } else if (schemaValue === null && stateValue !== null) {
       throw new Error(`Key '${key}' should be 'null'`);
     }
@@ -60,35 +93,9 @@ function validateArray(
     } else if (Array.isArray(schemaValue[0]) && Array.isArray(element)) {
       validateArray(schemaValue[0] as SchemaElement[], element, key);
     } else if (typeof schemaValue[0] === "object") {
-      validateState(schemaValue[0] as Schema, element);
+      validateStateAgainstSchema(schemaValue[0] as Schema, element);
     }
   }
 }
 
-export function isPlainObject(value: unknown): value is JSONObject {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    Object.getPrototypeOf(value) === Object.prototype
-  );
-}
-
-export function recurseIntoObject<T, P extends Path>(
-  base: T,
-  path: P
-): RecurseIntoObject<T, P> {
-  let current: any = base;
-  for (const key of path) {
-    if (current == null) {
-      return undefined as RecurseIntoObject<T, P>;
-    }
-    current = current[key];
-  }
-  return current as RecurseIntoObject<T, P>;
-}
-
-export function isUint8ArrayArray<T, U>(data: T | U[]): data is U[] {
-  return (
-    Array.isArray(data) && data.every((item) => item instanceof Uint8Array)
-  );
-}
+export type { Schema, MappedSchema } from "./types";
