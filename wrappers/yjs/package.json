@@ -17,8 +17,7 @@
     "mutative": "^1.0.8",
     "textdiff-create": "^1.1.11",
     "yjs": "^13.6.18",
-    "@crdt-wrapper/schema": "workspace:*",
-    "@crdt-wrapper/interface": "workspace:*"
+    "@crdt-wrapper/schema": "workspace:*"
   },
   "devDependencies": {
     "@types/textdiff-create": "^1.0.2"
