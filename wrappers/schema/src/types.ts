@@ -1,12 +1,11 @@
-type SchemaPrimitiveType =
+export type SchemaPrimitiveType =
   | "string"
   | "number"
   | "boolean"
   | "symbol"
   | "bigint"
   | "null"
-  | "undefined"
-  | "array";
+  | "undefined";
 
 export type SchemaElement =
   | SchemaPrimitiveType
@@ -32,20 +31,14 @@ type MapElementType<T> = T extends "string"
   ? null
   : T extends "undefined"
   ? undefined
-  : T extends "array"
-  ? any[]
-  : T extends [infer U]
-  ? Array<MapElementType<U>>
-  : T extends ReadonlyArray<infer U>
+  : T extends Array<infer U>
   ? Array<MapElementType<U>>
   : T extends Schema
   ? MappedSchema<T>
   : never;
 
-export type MappedSchema<T extends Schema> = ImmutableTopLevel<{
+export type MappedSchema<T extends Schema> = Simplify<{
   [P in keyof T]: MapElementType<T[P]>;
 }>;
 
-type ImmutableTopLevel<T> = {
-  [K in keyof T]: T[K];
-};
+type Simplify<T> = { [K in keyof T]: T[K] } & {};

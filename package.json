@@ -5,7 +5,9 @@
   "scripts": {
     "build": "pnpm turbo run build",
     "preinstall": "npx only-allow pnpm",
-    "prepare": "pnpm run build"
+    "prepare": "pnpm run build",
+    "update-deps": "pnpm update",
+    "pre-publish": "pnpm update && pnpm i && pnpm build"
   },
   "workspaces": [
     "wrappers/*"

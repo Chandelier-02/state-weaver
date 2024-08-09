@@ -186,15 +186,15 @@ describe("YjsWrapper", () => {
     });
 
     test("nested array modification", () => {
-      const nestedArraySchema = defineSchema({ array: ["array"] });
-      const nestedArrayObject = { array: [1, [2, 3], 4] };
+      const nestedArraySchema = defineSchema({ array: [["number"]] });
+      const nestedArrayObject = { array: [[2, 3]] };
       const wrapper = new YjsWrapper(nestedArraySchema, nestedArrayObject);
 
       wrapper.update((snapshot) => {
-        (snapshot.array[1] as number[]).push(5);
+        (snapshot.array[0] as number[]).push(5);
       });
 
-      expect(wrapper.state.array).toEqual([1, [2, 3, 5], 4]);
+      expect(wrapper.state.array).toEqual([[2, 3, 5]]);
     });
 
     test("replace entire array", () => {
@@ -210,21 +210,21 @@ describe("YjsWrapper", () => {
     test("nested array deep modification", () => {
       const nestedArraySchema = defineSchema({
         level1: {
-          array: ["array"],
+          array: [["number"]],
         },
       });
       const nestedArrayObject = {
         level1: {
-          array: [1, [2, 3], 4],
+          array: [[2, 3]],
         },
       };
       const wrapper = new YjsWrapper(nestedArraySchema, nestedArrayObject);
 
       wrapper.update((snapshot) => {
-        (snapshot.level1.array[1] as number[]).push(5);
+        (snapshot.level1.array[0] as number[]).push(5);
       });
 
-      expect(wrapper.state.level1.array).toEqual([1, [2, 3, 5], 4]);
+      expect(wrapper.state.level1.array).toEqual([[2, 3, 5]]);
     });
 
     test("deep nested array replacement", () => {
@@ -1030,8 +1030,8 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize nested array and object modifications", () => {
-    const nestedArraySchema = defineSchema({ nested: { array: ["array"] } });
-    const nestedArrayObject = { nested: { array: [1, [2, 3], 4] } };
+    const nestedArraySchema = defineSchema({ nested: { array: [["number"]] } });
+    const nestedArrayObject = { nested: { array: [[2, 3]] } };
 
     const wrapper1 = new YjsWrapper(nestedArraySchema, nestedArrayObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
@@ -1042,7 +1042,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
 
     // Modify the nested array in the first wrapper
     wrapper1.update((snapshot) => {
-      (snapshot.nested.array[1] as number[]).push(5);
+      (snapshot.nested.array[0] as number[]).push(5);
     });
 
     const nestedModificationUpdate = Y.encodeStateAsUpdate(
@@ -1054,7 +1054,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     wrapper2.applyUpdates([nestedModificationUpdate]);
 
     // Verify that both wrappers have the same state
-    expect(wrapper1.state.nested.array).toEqual([1, [2, 3, 5], 4]);
+    expect(wrapper1.state.nested.array).toEqual([[2, 3, 5]]);
     expect(wrapper1.state).toEqual(wrapper2.state);
   });
 
@@ -1207,8 +1207,8 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize interleaved nested array and object modifications", () => {
-    const nestedArraySchema = defineSchema({ nested: { array: ["array"] } });
-    const nestedArrayObject = { nested: { array: [1, [2, 3], 4] } };
+    const nestedArraySchema = defineSchema({ nested: { array: [["number"]] } });
+    const nestedArrayObject = { nested: { array: [[2, 3]] } };
 
     const wrapper1 = new YjsWrapper(nestedArraySchema, nestedArrayObject);
     const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
@@ -1223,7 +1223,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
 
     // Modify the nested array in the first wrapper
     wrapper1.update((snapshot) => {
-      (snapshot.nested.array[1] as number[]).push(5);
+      (snapshot.nested.array[0] as number[]).push(5);
     });
 
     const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
@@ -1233,7 +1233,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
 
     // Modify the nested array in the second wrapper
     wrapper2.update((snapshot) => {
-      (snapshot.nested.array[1] as number[]).push(6);
+      (snapshot.nested.array[0] as number[]).push(6);
     });
 
     const update2 = Y.encodeStateAsUpdate(wrapper2.yDoc, svBeforeChange2);
@@ -1242,7 +1242,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     wrapper1.applyUpdates([update2]);
 
     // Verify that both wrappers have the same state
-    expect(wrapper1.state.nested.array).toEqual([1, [2, 3, 5, 6], 4]);
+    expect(wrapper1.state.nested.array).toEqual([[2, 3, 5, 6]]);
     expect(wrapper1.state).toEqual(wrapper2.state);
   });
 
