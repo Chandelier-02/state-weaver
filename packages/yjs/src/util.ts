@@ -9,7 +9,7 @@ import { JSONArray, JSONObject, JSONValue } from "../../shared/src/types";
  * Supported events include:
  * - Y.YMapEvent
  * - Y.YArrayEvent
- * - Y.YTextEvent (with a path length greater than 1)
+ * - Y.YTextEvent
  *
  * @param event - The Yjs event to check.
  * @throws {Error} If the event is not supported.
@@ -69,21 +69,6 @@ export function createYTypes(
       yMap.set(key, createYTypes(val, yDoc));
     }
     return yMap;
-  }
-}
-
-/**
- * Converts a Yjs shared type or CRDT-compatible value to a plain JavaScript object.
- * This function converts Yjs shared types like Y.Map, Y.Array, and Y.Text to their equivalent JavaScript objects.
- *
- * @param v - The Yjs shared type or CRDT-compatible value to convert.
- * @returns The plain JavaScript object representation of the provided value.
- */
-export function toPojo(v: SupportedYType | JSONValue): JSONValue {
-  if (v instanceof Y.Map || v instanceof Y.Array || v instanceof Y.Text) {
-    return v.toJSON() as JSONObject | JSONArray | string;
-  } else {
-    return v;
   }
 }
 

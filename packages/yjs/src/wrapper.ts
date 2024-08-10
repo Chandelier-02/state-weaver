@@ -1,13 +1,7 @@
-import { create, Patch, Patches, rawReturn } from "mutative";
+import { create, Patch, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
-import {
-  assertSupportedEvent,
-  assertSupportedYType,
-  createYTypes,
-  isSupportedYType,
-  toPojo,
-} from "./util";
+import { assertSupportedYType, createYTypes, isSupportedYType } from "./util";
 import {
   MappedSchema,
   Schema,
@@ -15,13 +9,7 @@ import {
   validateStateAgainstSchema,
 } from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
-import {
-  isPlainObject,
-  isUint8ArrayArray,
-  recurseIntoObject,
-  SubStructure,
-  JSONObject,
-} from "../../shared/src";
+import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
 import { InitialDataType, SupportedYType } from "./types";
 
 export class YjsWrapper<
@@ -34,13 +22,10 @@ export class YjsWrapper<
   readonly #subscriptions: Set<(value: T) => void>;
   readonly #schema: S;
 
-  readonly #observeDeepFunc = (events: Y.YEvent<any>[]): void => {
-    const nonLocalEvents = events.filter(
-      (event) => event.currentTarget.doc?.clientID !== this.#yDoc.clientID
-    );
-    const updatedValue = this.#applyYEvents(nonLocalEvents);
+  readonly #observeDeepFunc = (): void => {
+    const updatedState = this.state;
     for (const subscription of this.#subscriptions) {
-      subscription(Object.freeze(updatedValue));
+      subscription(Object.freeze(updatedState));
     }
   };
 
@@ -51,16 +36,17 @@ export class YjsWrapper<
     this.#schema = schema;
     this.#subscriptions = new Set();
 
+    this.#yDoc.on("update", this.#observeDeepFunc);
+
+    // Need to do this or else loading the document from updates gives
+    // only Y.AbstractTypes that don't go to JSON
     for (const [key, value] of Object.entries(schema)) {
       if (typeof value === "object" && !Array.isArray(value)) {
-        const yMap = this.#yDoc.getMap(key);
-        yMap.observeDeep(this.#observeDeepFunc);
+        this.#yDoc.getMap(key);
       } else if (typeof value === "object" && Array.isArray(value)) {
-        const yArray = this.#yDoc.getArray(key);
-        yArray.observeDeep(this.#observeDeepFunc);
+        this.#yDoc.getArray(key);
       } else {
-        const yText = this.#yDoc.getText(key);
-        yText.observeDeep(this.#observeDeepFunc);
+        this.#yDoc.getText(key);
       }
     }
 
@@ -76,35 +62,38 @@ export class YjsWrapper<
   }
 
   get state(): Readonly<T> {
-    return Object.fromEntries(
-      Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
-        key,
-        sharedType.toJSON(),
-      ])
-    ) as T;
+    return Object.freeze(
+      Object.fromEntries(
+        Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
+          key,
+          sharedType.toJSON(),
+        ])
+      )
+    ) as Readonly<T>;
   }
 
   applyUpdates(updates: Uint8Array[], validate?: boolean): void {
-    const state = this.state;
+    const previousState = this.state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
     if (validate) {
+      const newState = this.state;
       try {
-        validateStateAgainstSchema(this.#schema, this.state);
+        validateStateAgainstSchema(this.#schema, newState);
       } catch (e) {
-        this.update(() => state, false);
+        this.update(() => previousState, false);
         throw e;
       }
     }
   }
 
   update(changeFn: (value: T) => void, validate?: boolean): void {
-    const state = this.state;
+    const previousState = this.state;
     this.#yDoc.transact(() => {
-      const [, patches] = create(state, changeFn, {
+      const [, patches] = create(previousState, changeFn, {
         enablePatches: true,
       });
       for (const patch of patches) {
@@ -113,10 +102,11 @@ export class YjsWrapper<
     });
 
     if (validate) {
+      const newState = this.state;
       try {
         validateStateAgainstSchema(this.#schema, this.state);
       } catch (e) {
-        this.update(() => state, false);
+        this.update(() => newState, false);
         throw e;
       }
     }
@@ -146,6 +136,7 @@ export class YjsWrapper<
 
     validateStateAgainstSchema(this.#schema, this.state);
   }
+
   #applyPatch(patch: Patch): void {
     const { path, op, value } = patch;
 
@@ -265,94 +256,5 @@ export class YjsWrapper<
         cursor += change[1].length;
       }
     }
-  }
-
-  #applyYEvents(events: Y.YEvent<any>[]): T {
-    return create(this.state, (target) => {
-      for (const event of events) {
-        assertSupportedEvent(event);
-        let base: any = target;
-        for (const [key, yType] of this.#yDoc.share) {
-          if (yType === event.currentTarget) {
-            base = base[key];
-            break;
-          }
-        }
-        if (event.path.length > 2) {
-          base = recurseIntoObject(
-            base,
-            event.path.slice(1)
-          ) as SubStructure<T>;
-        }
-        this.#applyYEvent(base, event);
-      }
-    });
-  }
-
-  // I need to fix this function signature
-  #applyYEvent(base: T, event: Y.YEvent<any>): T {
-    if (event instanceof Y.YMapEvent && isPlainObject(base)) {
-      const source = event.target as Y.Map<any>;
-
-      for (const [key, change] of event.changes.keys) {
-        switch (change.action) {
-          case "add":
-          case "update":
-            (base as JSONObject)[key] = toPojo(source.get(key));
-            break;
-          case "delete":
-            delete (base as JSONObject)[key];
-            break;
-        }
-      }
-    } else if (event instanceof Y.YArrayEvent && Array.isArray(base)) {
-      const arr = base as any[];
-
-      let retain = 0;
-      for (const change of event.changes.delta) {
-        if (change.retain) {
-          retain += change.retain;
-        }
-        if (change.delete) {
-          arr.splice(retain, change.delete);
-        }
-        if (change.insert) {
-          if (Array.isArray(change.insert)) {
-            arr.splice(retain, 0, ...change.insert.map(toPojo));
-          } else {
-            arr.splice(retain, 0, toPojo(change.insert));
-          }
-          retain += change.insert.length;
-        }
-      }
-    } else if (event instanceof Y.YTextEvent && typeof base === "string") {
-      base = this.#applyYTextEvent(base, event) as any;
-    }
-
-    return base;
-  }
-
-  #applyYTextEvent(base: string, event: Y.YTextEvent): string {
-    let text = base;
-
-    let retain = 0;
-    for (const change of event.changes.delta) {
-      if (change.retain) {
-        retain += change.retain;
-      }
-      if (change.delete) {
-        const deleteLength = change.delete;
-        text = text.slice(0, retain) + text.slice(retain + deleteLength);
-      }
-      if (change.insert) {
-        const insertText = Array.isArray(change.insert)
-          ? change.insert.join("")
-          : change.insert;
-        text = text.slice(0, retain) + insertText + text.slice(retain);
-        text = insertText;
-        retain += insertText.length;
-      }
-    }
-    return text;
   }
 }
