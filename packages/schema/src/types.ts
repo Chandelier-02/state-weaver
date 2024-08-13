@@ -17,6 +17,12 @@ export type Schema = {
   [key: string]: SchemaElement;
 };
 
+type IsEmptyObject<T> = keyof T extends never ? true : false;
+
+type NonEmptySchema<T extends Schema> = IsEmptyObject<T> extends true
+  ? never
+  : T;
+
 type MapElementType<T> = T extends "string"
   ? string
   : T extends "number"
@@ -33,7 +39,7 @@ type MapElementType<T> = T extends "string"
   ? undefined
   : T extends Array<infer U>
   ? Array<MapElementType<U>>
-  : T extends Schema
+  : T extends NonEmptySchema<Schema>
   ? MappedSchema<T>
   : never;
 

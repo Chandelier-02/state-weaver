@@ -61,6 +61,7 @@ export class YjsWrapper<
     return this.#yDoc;
   }
 
+  // TODO: Speed this up in a way such that it only emits differences
   get state(): Readonly<T> {
     return Object.freeze(
       Object.fromEntries(
