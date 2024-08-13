@@ -10,7 +10,7 @@ import {
 } from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
 import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
-import { InitialDataType, SupportedYType } from "./types";
+import { SupportedYType } from "./types";
 
 export class YjsWrapper<
   S extends Schema,
@@ -29,7 +29,7 @@ export class YjsWrapper<
     }
   };
 
-  constructor(schema: S, initialData: InitialDataType<S>) {
+  constructor(schema: S, initialData: T | Uint8Array[]) {
     validateSchema(schema);
 
     this.#yDoc = new Y.Doc() as D;
@@ -53,7 +53,7 @@ export class YjsWrapper<
     if (isUint8ArrayArray(initialData)) {
       this.applyUpdates(initialData, true);
     } else {
-      this.#initializeObject(initialData as T);
+      this.#initializeObject(initialData);
     }
   }
 
