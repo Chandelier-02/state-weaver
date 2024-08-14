@@ -1,4 +1,4 @@
-import type { Schema, MappedSchema } from "../schema";
+import type { Schema, MappedSchema } from "../schema/dist";
 
 export interface CRDTWrapper<
   S extends Schema,
