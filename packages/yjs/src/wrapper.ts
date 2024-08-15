@@ -10,7 +10,7 @@ import {
 } from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
 import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
-import { Result, SupportedYType } from "./types";
+import { SupportedYType } from "./types";
 
 export class YjsWrapper<
   S extends Schema,
@@ -45,8 +45,13 @@ export class YjsWrapper<
     }
 
     if (isUint8ArrayArray(initialData)) {
-      const state = this.applyUpdates(initialData, true);
-      this.#state = state;
+      const couldApplyUpdates = this.applyUpdates(initialData, true);
+      if (!couldApplyUpdates) {
+        throw new Error(
+          `Failed to apply updates. Object generated from updates did not match schema!`
+        );
+      }
+      this.#state = this.#getState();
     } else {
       this.#state = this.#initializeObject(initialData);
     }
@@ -63,32 +68,30 @@ export class YjsWrapper<
 
   // NOTE: This may be suboptimal for extremely large numbers of updates.
   // We won't get back our object until it has been completely constructed.
-  applyUpdates(updates: Uint8Array[], validate?: boolean): T {
+  applyUpdates(updates: Uint8Array[], validate?: boolean): boolean {
     const previousState = this.#state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
-
     const newState = this.#getState();
 
-    if (validate) {
-      try {
-        validateStateAgainstSchema(this.#schema, newState);
-        this.#state = newState;
-        newState;
-      } catch (e) {
-        this.update(() => previousState, false);
-        throw e;
-      }
+    if (!validate) {
+      return true;
     }
 
-    this.#state = newState;
-    return newState;
+    try {
+      validateStateAgainstSchema(this.#schema, newState);
+      this.#state = newState;
+      return true;
+    } catch (e) {
+      this.update(() => previousState, false);
+      return false;
+    }
   }
 
-  update(changeFn: (value: T) => void, validate?: boolean): T {
+  update(changeFn: (value: T) => void, validate?: boolean): boolean {
     const previousState = this.#state;
     this.#yDoc.transact(() => {
       const [, patches] = create(previousState, changeFn, {
@@ -98,22 +101,20 @@ export class YjsWrapper<
         this.#applyPatch(patch);
       }
     });
-
     const newState = this.#getState();
 
-    if (validate) {
-      try {
-        validateStateAgainstSchema(this.#schema, newState);
-        this.#state = newState;
-        return newState;
-      } catch (e) {
-        this.update(() => newState, false);
-        throw e;
-      }
+    if (!validate) {
+      return true;
     }
 
-    this.#state = newState;
-    return newState;
+    try {
+      validateStateAgainstSchema(this.#schema, newState);
+      this.#state = newState;
+      return true;
+    } catch (e) {
+      this.update(() => newState, false);
+      return false;
+    }
   }
 
   public dispose(): void {

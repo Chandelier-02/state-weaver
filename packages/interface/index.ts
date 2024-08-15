@@ -9,11 +9,11 @@ export interface CRDTWrapper<
 
   state: Readonly<T>;
 
-  applyUpdates(updates: U[], validate: boolean): T;
+  applyUpdates(updates: U[], validate: boolean): boolean;
 
-  update(changeFn: (value: T) => void, validate?: boolean): T;
+  update(changeFn: (value: T) => void, validate?: boolean): boolean;
 
-  update(changeFn: (value: T) => T, validate?: boolean): T;
+  update(changeFn: (value: T) => T, validate?: boolean): boolean;
 
   dispose(): void;
 }
