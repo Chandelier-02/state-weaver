@@ -78,6 +78,7 @@ export class YjsWrapper<
     const newState = this.#getState();
 
     if (!validate) {
+      this.#state = newState;
       return true;
     }
 
@@ -104,6 +105,7 @@ export class YjsWrapper<
     const newState = this.#getState();
 
     if (!validate) {
+      this.#state = newState;
       return true;
     }
 
