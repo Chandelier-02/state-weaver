@@ -10,7 +10,7 @@ import {
 } from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
 import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
-import { SupportedYType } from "./types";
+import { Result, SupportedYType } from "./types";
 
 export class YjsWrapper<
   S extends Schema,
@@ -29,10 +29,14 @@ export class YjsWrapper<
     }
   };
 
-  constructor(schema: S, initialData: T | Uint8Array[]) {
+  constructor(schema: S, initialData: T | Uint8Array[], clientId?: string) {
     validateSchema(schema);
 
     this.#yDoc = new Y.Doc() as D;
+    if (clientId) {
+      // @ts-ignore
+      this.#yDoc.clientID = clientId;
+    }
     this.#schema = schema;
     this.#subscriptions = new Set();
 
@@ -73,25 +77,37 @@ export class YjsWrapper<
     ) as Readonly<T>;
   }
 
-  applyUpdates(updates: Uint8Array[], validate?: boolean): void {
+  // NOTE: This may be suboptimal for extremely large numbers of updates.
+  // We won't get back our object until it has been completely constructed.
+  applyUpdates(updates: Uint8Array[], validate?: boolean): Result<T> {
     const previousState = this.state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
+
+    const newState = this.state;
+
     if (validate) {
-      const newState = this.state;
       try {
         validateStateAgainstSchema(this.#schema, newState);
+        return { value: newState };
       } catch (e) {
         this.update(() => previousState, false);
+        if (e instanceof Error) {
+          return {
+            value: previousState,
+            error: e,
+          };
+        }
         throw e;
       }
     }
+    return { value: newState };
   }
 
-  update(changeFn: (value: T) => void, validate?: boolean): void {
+  update(changeFn: (value: T) => void, validate?: boolean): Result<T> {
     const previousState = this.state;
     this.#yDoc.transact(() => {
       const [, patches] = create(previousState, changeFn, {
@@ -102,15 +118,22 @@ export class YjsWrapper<
       }
     });
 
+    const newState = this.state;
+
     if (validate) {
-      const newState = this.state;
       try {
         validateStateAgainstSchema(this.#schema, this.state);
+        return { value: newState };
       } catch (e) {
         this.update(() => newState, false);
+        if (e instanceof Error) {
+          return { value: previousState, error: e };
+        }
         throw e;
       }
     }
+
+    return { value: newState };
   }
 
   public subscribe(listener: (value: Readonly<T>) => void): void {

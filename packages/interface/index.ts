@@ -10,11 +10,11 @@ export interface CRDTWrapper<
 
   state: Readonly<T>;
 
-  applyUpdates(updates: U[], validate: boolean): void;
+  applyUpdates(updates: U[], validate: boolean): Result<T>;
 
-  update(changeFn: (value: T) => void, validate?: boolean): void;
+  update(changeFn: (value: T) => void, validate?: boolean): Result<T>;
 
-  update(changeFn: (value: T) => T, validate?: boolean): void;
+  update(changeFn: (value: T) => T, validate?: boolean): Result<T>;
 
   subscribe(listener: (state: Readonly<T>) => void): void;
 
