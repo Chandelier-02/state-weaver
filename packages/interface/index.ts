@@ -1,4 +1,5 @@
 import type { Schema, MappedSchema } from "../schema/dist";
+import { Result } from "../shared/dist";
 
 export interface CRDTWrapper<
   S extends Schema,
@@ -15,10 +16,6 @@ export interface CRDTWrapper<
   update(changeFn: (value: T) => void, validate?: boolean): Result<T>;
 
   update(changeFn: (value: T) => T, validate?: boolean): Result<T>;
-
-  subscribe(listener: (state: Readonly<T>) => void): void;
-
-  unsubscribe(listener: (state: Readonly<T>) => void): void;
 
   dispose(): void;
 }

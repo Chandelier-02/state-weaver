@@ -19,15 +19,8 @@ export class YjsWrapper<
 > implements CRDTWrapper<S, T, D, Uint8Array>
 {
   readonly #yDoc: Readonly<D>;
-  readonly #subscriptions: Set<(value: T) => void>;
   readonly #schema: S;
-
-  readonly #observeDeepFunc = (): void => {
-    const updatedState = this.state;
-    for (const subscription of this.#subscriptions) {
-      subscription(Object.freeze(updatedState));
-    }
-  };
+  #state: T;
 
   constructor(schema: S, initialData: T | Uint8Array[], clientId?: string) {
     validateSchema(schema);
@@ -38,9 +31,6 @@ export class YjsWrapper<
       this.#yDoc.clientID = clientId;
     }
     this.#schema = schema;
-    this.#subscriptions = new Set();
-
-    this.#yDoc.on("update", this.#observeDeepFunc);
 
     // Need to do this or else loading the document from updates gives
     // only Y.AbstractTypes that don't go to JSON
@@ -55,9 +45,13 @@ export class YjsWrapper<
     }
 
     if (isUint8ArrayArray(initialData)) {
-      this.applyUpdates(initialData, true);
+      const result = this.applyUpdates(initialData, true);
+      if (result.error) {
+        throw result.error;
+      }
+      this.#state = result.value;
     } else {
-      this.#initializeObject(initialData);
+      this.#state = this.#initializeObject(initialData);
     }
   }
 
@@ -67,31 +61,25 @@ export class YjsWrapper<
 
   // TODO: Speed this up in a way such that it only emits differences
   get state(): Readonly<T> {
-    return Object.freeze(
-      Object.fromEntries(
-        Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
-          key,
-          sharedType.toJSON(),
-        ])
-      )
-    ) as Readonly<T>;
+    return Object.freeze(this.#state);
   }
 
   // NOTE: This may be suboptimal for extremely large numbers of updates.
   // We won't get back our object until it has been completely constructed.
   applyUpdates(updates: Uint8Array[], validate?: boolean): Result<T> {
-    const previousState = this.state;
+    const previousState = this.#state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
 
-    const newState = this.state;
+    const newState = this.#getState();
 
     if (validate) {
       try {
         validateStateAgainstSchema(this.#schema, newState);
+        this.#state = newState;
         return { value: newState };
       } catch (e) {
         this.update(() => previousState, false);
@@ -104,11 +92,13 @@ export class YjsWrapper<
         throw e;
       }
     }
+
+    this.#state = newState;
     return { value: newState };
   }
 
   update(changeFn: (value: T) => void, validate?: boolean): Result<T> {
-    const previousState = this.state;
+    const previousState = this.#state;
     this.#yDoc.transact(() => {
       const [, patches] = create(previousState, changeFn, {
         enablePatches: true,
@@ -118,11 +108,12 @@ export class YjsWrapper<
       }
     });
 
-    const newState = this.state;
+    const newState = this.#getState();
 
     if (validate) {
       try {
-        validateStateAgainstSchema(this.#schema, this.state);
+        validateStateAgainstSchema(this.#schema, newState);
+        this.#state = newState;
         return { value: newState };
       } catch (e) {
         this.update(() => newState, false);
@@ -133,22 +124,26 @@ export class YjsWrapper<
       }
     }
 
+    this.#state = newState;
     return { value: newState };
-  }
-
-  public subscribe(listener: (value: Readonly<T>) => void): void {
-    this.#subscriptions.add(listener);
-  }
-
-  public unsubscribe(listener: (value: Readonly<T>) => void): void {
-    this.#subscriptions.delete(listener);
   }
 
   public dispose(): void {
     this.#yDoc.destroy();
   }
 
-  #initializeObject(object: T): void {
+  #getState(): Readonly<T> {
+    return Object.freeze(
+      Object.fromEntries(
+        Array.from(this.#yDoc.share.entries()).map(([key, sharedType]) => [
+          key,
+          sharedType.toJSON(),
+        ])
+      )
+    ) as Readonly<T>;
+  }
+
+  #initializeObject(object: T): T {
     this.#yDoc.transact(() => {
       const [, patches] = create({}, () => rawReturn(object as object), {
         enablePatches: true,
@@ -158,7 +153,9 @@ export class YjsWrapper<
       }
     });
 
-    validateStateAgainstSchema(this.#schema, this.state);
+    const state = this.#getState();
+    validateStateAgainstSchema(this.#schema, state);
+    return state;
   }
 
   #applyPatch(patch: Patch): void {

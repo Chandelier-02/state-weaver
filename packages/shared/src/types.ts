@@ -25,3 +25,5 @@ export type RecurseIntoObject<T, P extends Path> = P extends [
   : T;
 
 export type SubStructure<T> = RecurseIntoObject<T, (string | number)[]>;
+
+export type Result<T> = { value: T; error?: Error };
