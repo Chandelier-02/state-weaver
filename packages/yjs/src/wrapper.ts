@@ -22,7 +22,7 @@ export class YjsWrapper<
   readonly #schema: S;
   #state: T;
 
-  constructor(schema: S, initialData: T | Uint8Array[], clientId?: string) {
+  constructor(schema: S, initialData: T | Uint8Array[], clientId?: number) {
     validateSchema(schema);
 
     this.#yDoc = new Y.Doc() as D;
