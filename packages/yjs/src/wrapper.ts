@@ -45,11 +45,8 @@ export class YjsWrapper<
     }
 
     if (isUint8ArrayArray(initialData)) {
-      const result = this.applyUpdates(initialData, true);
-      if (result.error) {
-        throw result.error;
-      }
-      this.#state = result.value;
+      const state = this.applyUpdates(initialData, true);
+      this.#state = state;
     } else {
       this.#state = this.#initializeObject(initialData);
     }
@@ -66,7 +63,7 @@ export class YjsWrapper<
 
   // NOTE: This may be suboptimal for extremely large numbers of updates.
   // We won't get back our object until it has been completely constructed.
-  applyUpdates(updates: Uint8Array[], validate?: boolean): Result<T> {
+  applyUpdates(updates: Uint8Array[], validate?: boolean): T {
     const previousState = this.#state;
     this.#yDoc.transact(() => {
       for (const update of updates) {
@@ -80,24 +77,18 @@ export class YjsWrapper<
       try {
         validateStateAgainstSchema(this.#schema, newState);
         this.#state = newState;
-        return { value: newState };
+        newState;
       } catch (e) {
         this.update(() => previousState, false);
-        if (e instanceof Error) {
-          return {
-            value: previousState,
-            error: e,
-          };
-        }
         throw e;
       }
     }
 
     this.#state = newState;
-    return { value: newState };
+    return newState;
   }
 
-  update(changeFn: (value: T) => void, validate?: boolean): Result<T> {
+  update(changeFn: (value: T) => void, validate?: boolean): T {
     const previousState = this.#state;
     this.#yDoc.transact(() => {
       const [, patches] = create(previousState, changeFn, {
@@ -114,18 +105,15 @@ export class YjsWrapper<
       try {
         validateStateAgainstSchema(this.#schema, newState);
         this.#state = newState;
-        return { value: newState };
+        return newState;
       } catch (e) {
         this.update(() => newState, false);
-        if (e instanceof Error) {
-          return { value: previousState, error: e };
-        }
         throw e;
       }
     }
 
     this.#state = newState;
-    return { value: newState };
+    return newState;
   }
 
   public dispose(): void {

@@ -1,6 +1,6 @@
 {
   "name": "shared",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "private": true,
   "description": "Shared utility functions and types",
