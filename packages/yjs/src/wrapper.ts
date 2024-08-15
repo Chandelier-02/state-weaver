@@ -47,13 +47,19 @@ export class YjsWrapper<
     if (isUint8ArrayArray(initialData)) {
       const couldApplyUpdates = this.applyUpdates(initialData, true);
       if (!couldApplyUpdates) {
+        this.#yDoc.destroy();
         throw new Error(
           `Failed to apply updates. Object generated from updates did not match schema!`
         );
       }
       this.#state = this.#getState();
     } else {
-      this.#state = this.#initializeObject(initialData);
+      try {
+        this.#state = this.#initializeObject(initialData);
+      } catch (e) {
+        this.#yDoc.destroy();
+        throw e;
+      }
     }
   }
 
