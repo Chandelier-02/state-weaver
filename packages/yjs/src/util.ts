@@ -1,44 +1,4 @@
 import * as Y from "yjs";
-import { SupportedYType } from "./types";
-import { JSONArray, JSONObject, JSONValue } from "../../shared/src/types";
-
-/**
- * Asserts that the provided Yjs event is supported.
- * Throws an error if the event is not one of the supported types.
- *
- * Supported events include:
- * - Y.YMapEvent
- * - Y.YArrayEvent
- * - Y.YTextEvent
- *
- * @param event - The Yjs event to check.
- * @throws {Error} If the event is not supported.
- */
-export function assertSupportedEvent(event: Y.YEvent<any>): void {
-  if (
-    !(
-      event instanceof Y.YMapEvent ||
-      event instanceof Y.YArrayEvent ||
-      event instanceof Y.YTextEvent
-    )
-  ) {
-    throw new Error(
-      `Cannot handle change events from ${event.constructor.name}`
-    );
-  }
-}
-
-export function assertSupportedYType(yType: Y.AbstractType<any>): void {
-  if (
-    !(
-      yType instanceof Y.Text ||
-      yType instanceof Y.Array ||
-      yType instanceof Y.Map
-    )
-  ) {
-    throw new Error(`Cannot handle yType ${yType.constructor.name}`);
-  }
-}
 
 export function createYTypes(
   value: any,
@@ -70,8 +30,4 @@ export function createYTypes(
     }
     return yMap;
   }
-}
-
-export function isSupportedYType(v: unknown): v is SupportedYType {
-  return v instanceof Y.Map || v instanceof Y.Array || v instanceof Y.Text;
 }

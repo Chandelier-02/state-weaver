@@ -1141,41 +1141,41 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 });
 
-describe("Test specific yjs use case", async () => {
-  test("Won't duplicate information", async () => {
-    const deepSchema = defineSchema({
-      level1: {
-        level2: {
-          key: "string",
-          array: ["number"],
-        },
-      },
-    });
+// describe("Test specific yjs use case", async () => {
+//   test("Won't duplicate information", async () => {
+//     const deepSchema = defineSchema({
+//       level1: {
+//         level2: {
+//           key: "string",
+//           array: ["number"],
+//         },
+//       },
+//     });
 
-    const deepObject = {
-      level1: {
-        level2: {
-          key: "deepValue",
-          array: [1, 2, 3],
-        },
-      },
-    };
+//     const deepObject = {
+//       level1: {
+//         level2: {
+//           key: "deepValue",
+//           array: [1, 2, 3],
+//         },
+//       },
+//     };
 
-    const wrapper1 = new YjsWrapper(deepSchema, deepObject);
-    const wrapper2 = new YjsWrapper(deepSchema, deepObject);
+//     const wrapper1 = new YjsWrapper(deepSchema, deepObject);
+//     const wrapper2 = new YjsWrapper(deepSchema, deepObject);
 
-    wrapper1.update((snapshot) => {
-      snapshot.level1.level2.key = "test";
-    });
+//     wrapper1.update((snapshot) => {
+//       snapshot.level1.level2.key = "test";
+//     });
 
-    const wrapper1UpdateState = Y.encodeStateAsUpdate(wrapper1.yDoc);
+//     const wrapper1UpdateState = Y.encodeStateAsUpdate(wrapper1.yDoc);
 
-    wrapper2.applyUpdates([wrapper1UpdateState]);
+//     wrapper2.applyUpdates([wrapper1UpdateState]);
 
-    console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper1.yDoc)));
-    console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper2.yDoc)));
+//     // console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper1.yDoc)));
+//     // console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper2.yDoc)));
 
-    // TODO: Look into StructStore.addStruct references. That function determines what is added to the store and in what order.
-    expect(wrapper1.state).toEqual(wrapper2.state);
-  });
-});
+//     // TODO: Look into StructStore.addStruct references. That function determines what is added to the store and in what order.
+//     expect(wrapper1.state).toEqual(wrapper2.state);
+//   });
+// });

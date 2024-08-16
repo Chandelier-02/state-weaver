@@ -1,13 +1,8 @@
 import { create, Patch, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
-import { assertSupportedYType, createYTypes, isSupportedYType } from "./util";
-import {
-  MappedSchema,
-  Schema,
-  validateSchema,
-  validateStateAgainstSchema,
-} from "@crdt-wrapper/schema";
+import { createYTypes } from "./util";
+import { MappedSchema, Schema } from "@crdt-wrapper/schema";
 import { CRDTWrapper } from "@crdt-wrapper/interface";
 import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
 import { SupportedYType } from "./types";
@@ -19,18 +14,14 @@ export class YjsWrapper<
 > implements CRDTWrapper<S, T, D, Uint8Array>
 {
   readonly #yDoc: Readonly<D>;
-  readonly #schema: S;
-  #state: T;
+  #state: Readonly<T>;
 
   constructor(schema: S, initialData: T | Uint8Array[], clientId?: number) {
-    validateSchema(schema);
-
     this.#yDoc = new Y.Doc() as D;
     if (clientId) {
       // @ts-ignore
       this.#yDoc.clientID = clientId;
     }
-    this.#schema = schema;
 
     // Need to do this or else loading the document from updates gives
     // only Y.AbstractTypes that don't go to JSON
@@ -45,21 +36,10 @@ export class YjsWrapper<
     }
 
     if (isUint8ArrayArray(initialData)) {
-      const couldApplyUpdates = this.applyUpdates(initialData, true);
-      if (!couldApplyUpdates) {
-        this.#yDoc.destroy();
-        throw new Error(
-          `Failed to apply updates. Object generated from updates did not match schema!`
-        );
-      }
+      this.applyUpdates(initialData);
       this.#state = this.#getState();
     } else {
-      try {
-        this.#state = this.#initializeObject(initialData);
-      } catch (e) {
-        this.#yDoc.destroy();
-        throw e;
-      }
+      this.#state = this.#initializeObject(initialData);
     }
   }
 
@@ -67,62 +47,29 @@ export class YjsWrapper<
     return this.#yDoc;
   }
 
-  // TODO: Speed this up in a way such that it only emits differences
   get state(): Readonly<T> {
     return Object.freeze(this.#state);
   }
 
-  // NOTE: This may be suboptimal for extremely large numbers of updates.
-  // We won't get back our object until it has been completely constructed.
-  applyUpdates(updates: Uint8Array[], validate?: boolean): boolean {
-    const previousState = this.#state;
+  applyUpdates(updates: Uint8Array[]): void {
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
-    const newState = this.#getState();
-
-    if (!validate) {
-      this.#state = newState;
-      return true;
-    }
-
-    try {
-      validateStateAgainstSchema(this.#schema, newState);
-      this.#state = newState;
-      return true;
-    } catch (e) {
-      this.update(() => previousState, false);
-      return false;
-    }
+    this.#state = this.#getState();
   }
 
-  update(changeFn: (value: T) => void, validate?: boolean): boolean {
-    const previousState = this.#state;
+  update(changeFn: (value: T) => void): void {
     this.#yDoc.transact(() => {
-      const [, patches] = create(previousState, changeFn, {
+      const [, patches] = create(this.#state, changeFn, {
         enablePatches: true,
       });
       for (const patch of patches) {
         this.#applyPatch(patch);
       }
     });
-    const newState = this.#getState();
-
-    if (!validate) {
-      this.#state = newState;
-      return true;
-    }
-
-    try {
-      validateStateAgainstSchema(this.#schema, newState);
-      this.#state = newState;
-      return true;
-    } catch (e) {
-      this.update(() => newState, false);
-      return false;
-    }
+    this.#state = this.#getState();
   }
 
   public dispose(): void {
@@ -150,17 +97,11 @@ export class YjsWrapper<
       }
     });
 
-    const state = this.#getState();
-    validateStateAgainstSchema(this.#schema, state);
-    return state;
+    return this.#getState();
   }
 
   #applyPatch(patch: Patch): void {
     const { path, op, value } = patch;
-
-    if (typeof path === "string") {
-      throw new Error("Cannot handle non-array paths. Check mutative config.");
-    }
 
     const updateYTypesFromScratch = (
       target: SupportedYType,
@@ -194,17 +135,14 @@ export class YjsWrapper<
           target = this.#yDoc.getMap(subKey);
         } else if (typeof subValue === "object" && Array.isArray(subValue)) {
           target = this.#yDoc.getArray(subKey);
-        } else if (typeof subValue === "string") {
-          target = this.#yDoc.getText(subKey);
         } else {
-          throw new Error("I have no idea how you got here");
+          target = this.#yDoc.getText(subKey);
         }
-        updateYTypesFromScratch(target, subValue);
+        updateYTypesFromScratch(target, subValue as string | {} | []);
       }
     } else if (path.length === 1) {
       for (let i = 0; i < path.length; i++) {
         const target = this.#yDoc.get(path[i] as string);
-        assertSupportedYType(target);
         updateYTypesFromScratch(target as SupportedYType, value);
       }
     } else {
@@ -214,7 +152,7 @@ export class YjsWrapper<
           target = target.get(path[i] as string);
         } else if (target instanceof Y.Array) {
           const nextTarget = target.get(path[i] as number);
-          if (isSupportedYType(nextTarget)) {
+          if (nextTarget instanceof Y.AbstractType) {
             target = nextTarget as SupportedYType;
           } else {
             break;
