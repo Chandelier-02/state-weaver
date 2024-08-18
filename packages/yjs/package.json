@@ -1,6 +1,6 @@
 {
   "name": "@crdt-wrapper/yjs",
-  "version": "1.0.13-beta",
+  "version": "1.0.14-beta",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Chandelier-02",

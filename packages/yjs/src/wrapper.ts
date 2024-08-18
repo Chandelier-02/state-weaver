@@ -7,6 +7,13 @@ import { CRDTWrapper } from "@crdt-wrapper/interface";
 import { isPlainObject, isUint8ArrayArray } from "../../shared/src";
 import { SupportedYType } from "./types";
 
+export class InvalidStateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
 export class YjsWrapper<
   S extends Schema,
   T extends MappedSchema<S>,
@@ -14,14 +21,21 @@ export class YjsWrapper<
 > implements CRDTWrapper<S, T, D, Uint8Array>
 {
   readonly #yDoc: Readonly<D>;
-  #state: Readonly<T>;
+  readonly #validate?: (object: unknown) => object is T;
+  #state!: Readonly<T>;
 
-  constructor(schema: S, initialData: T | Uint8Array[], clientId?: number) {
+  constructor(
+    schema: S,
+    initialData: T | Uint8Array[],
+    validate?: (object: unknown) => object is T,
+    clientId?: number
+  ) {
     this.#yDoc = new Y.Doc() as D;
     if (clientId) {
       // @ts-ignore
       this.#yDoc.clientID = clientId;
     }
+    this.#validate = validate;
 
     // Need to do this or else loading the document from updates gives
     // only Y.AbstractTypes that don't go to JSON
@@ -37,9 +51,8 @@ export class YjsWrapper<
 
     if (isUint8ArrayArray(initialData)) {
       this.applyUpdates(initialData);
-      this.#state = this.#getState();
     } else {
-      this.#state = this.#initializeObject(initialData);
+      this.#initializeObject(initialData);
     }
   }
 
@@ -51,16 +64,25 @@ export class YjsWrapper<
     return Object.freeze(this.#state);
   }
 
-  applyUpdates(updates: Uint8Array[]): void {
+  applyUpdates(updates: Uint8Array[]): Readonly<T> {
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
-    this.#state = this.#getState();
+
+    const newState = this.#getState();
+    if (this.#validate && !this.#validate(newState)) {
+      throw new InvalidStateError(
+        `Object generated from applied updates breaks schema!`
+      );
+    }
+
+    this.#state = newState;
+    return this.state;
   }
 
-  update(changeFn: (value: T) => void): void {
+  update(changeFn: (value: T) => void): Readonly<T> {
     this.#yDoc.transact(() => {
       const [, patches] = create(this.#state, changeFn, {
         enablePatches: true,
@@ -69,7 +91,14 @@ export class YjsWrapper<
         this.#applyPatch(patch);
       }
     });
-    this.#state = this.#getState();
+
+    const newState = this.#getState();
+    if (this.#validate && !this.#validate(newState)) {
+      throw new InvalidStateError(`Update to state breaks schema!`);
+    }
+
+    this.#state = newState;
+    return this.state;
   }
 
   public dispose(): void {
@@ -87,7 +116,7 @@ export class YjsWrapper<
     ) as Readonly<T>;
   }
 
-  #initializeObject(object: T): T {
+  #initializeObject(object: T): void {
     this.#yDoc.transact(() => {
       const [, patches] = create({}, () => rawReturn(object as object), {
         enablePatches: true,
@@ -97,7 +126,12 @@ export class YjsWrapper<
       }
     });
 
-    return this.#getState();
+    const newState = this.#getState();
+    if (this.#validate && !this.#validate(newState)) {
+      throw new InvalidStateError(`Object passed does not match schema!`);
+    }
+
+    this.#state = newState;
   }
 
   #applyPatch(patch: Patch): void {
