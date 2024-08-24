@@ -1,7 +1,7 @@
 {
   "name": "@state-weaver/interface",
   "type": "module",
-  "version": "0.1.0-beta",
+  "version": "0.1.1-beta",
   "types": "dist/index.d.ts",
   "author": "Chandelier-02",
   "license": "MIT",

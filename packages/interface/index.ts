@@ -1,14 +1,14 @@
-import { JsonObject, ReadonlyDeep } from "type-fest";
+import { JsonObject } from "type-fest";
 export interface CRDTWrapper<T extends JsonObject, D, U> {
   yDoc: Readonly<D>;
 
-  state: ReadonlyDeep<T>;
+  state: T;
 
-  applyUpdates(updates: U[]): ReadonlyDeep<T>;
+  applyUpdates(updates: U[]): T;
 
-  update(changeFn: (value: T) => void): ReadonlyDeep<T>;
+  update(changeFn: (value: T) => void): T;
 
-  update(changeFn: (value: T) => T): ReadonlyDeep<T>;
+  update(changeFn: (value: T) => T): T;
 
   [Symbol.dispose](): void;
 }

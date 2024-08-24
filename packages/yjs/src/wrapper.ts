@@ -4,7 +4,7 @@ import createStringPatches, { Change } from "textdiff-create";
 import { createYTypes } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
 import { isUint8ArrayArray } from "../../shared/src/index.js";
-import { JsonObject, ReadonlyDeep } from "type-fest";
+import { JsonObject } from "type-fest";
 
 export class InvalidStateError extends Error {
   constructor(message: string) {
@@ -27,7 +27,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   readonly #yDoc: Readonly<D>;
   readonly #yMap: Y.Map<any>;
   readonly #validate: (object: unknown) => object is T;
-  #state!: ReadonlyDeep<T>;
+  #state!: T;
 
   constructor(
     initialData: T | Uint8Array[],
@@ -53,11 +53,11 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     return this.#yDoc;
   }
 
-  get state(): ReadonlyDeep<T> {
+  get state(): T {
     return this.#state;
   }
 
-  applyUpdates(updates: Uint8Array[]): ReadonlyDeep<T> {
+  applyUpdates(updates: Uint8Array[]): T {
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
@@ -75,7 +75,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     return this.state;
   }
 
-  update(changeFn: (value: T) => void): ReadonlyDeep<T> {
+  update(changeFn: (value: T) => void): T {
     this.#yDoc.transact(() => {
       // @ts-ignore
       const [, patches] = create(this.#state, changeFn, {
@@ -99,8 +99,8 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     this.#yDoc.destroy();
   }
 
-  #getState(): ReadonlyDeep<T> {
-    return this.#yMap.toJSON() as ReadonlyDeep<T>;
+  #getState(): T {
+    return this.#yMap.toJSON() as T;
   }
 
   #initializeObject(object: T): void {
