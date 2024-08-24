@@ -1,0 +1,50 @@
+{
+  "name": "@state-weaver/yjs",
+  "version": "0.1.0-beta",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Chandelier-02",
+  "type": "module",
+  "license": "MIT",
+  "description": "A TypeScript library that provides a wrapper around Yjs shared types, facilitating easy interaction with Yjs CRDTs using plain JavaScript objects.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chandelier-02/state-weaver/tree/main/packages/yjs"
+  },
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "clean": "rimraf dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@state-weaver/interface": "workspace:^",
+    "mutative": "^1.0.8",
+    "textdiff-create": "^1.1.11",
+    "type-fest": "^4.25.0",
+    "yjs": "^13.6.18"
+  },
+  "devDependencies": {
+    "@types/textdiff-create": "^1.0.2"
+  },
+  "keywords": [
+    "CRDT",
+    "Yjs",
+    "Real-time collaboration",
+    "Data synchronization",
+    "Conflict-free replicated data types",
+    "JavaScript",
+    "TypeScript",
+    "Shared types",
+    "Y.Map",
+    "Y.Array",
+    "Collaborative editing",
+    "Distributed systems",
+    "State management",
+    "JSON",
+    "Wrapper library"
+  ]
+}

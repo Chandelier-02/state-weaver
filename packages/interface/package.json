@@ -1,0 +1,36 @@
+{
+  "name": "@state-weaver/interface",
+  "type": "module",
+  "version": "0.1.0-beta",
+  "types": "dist/index.d.ts",
+  "author": "Chandelier-02",
+  "license": "MIT",
+  "description": "An interface for the State Weaver library, enabling seamless synchronization of JavaScript objects with CRDTs such as Yjs, Json-Joy, etc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chandelier-02/state-weaver/tree/main/packages/interface"
+  },
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "CRDT",
+    "Conflict-free Replicated Data Type",
+    "TypeScript",
+    "JavaScript",
+    "state management",
+    "synchronization",
+    "distributed systems",
+    "data synchronization",
+    "interface",
+    "POJO"
+  ],
+  "dependencies": {
+    "type-fest": "^4.25.0"
+  }
+}

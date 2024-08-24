@@ -1,0 +1,23 @@
+{
+  "name": "state-weaver",
+  "version": "0.1.0-beta",
+  "private": true,
+  "scripts": {
+    "build": "pnpm turbo run build",
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "pnpm run build",
+    "update-deps": "pnpm update",
+    "pre-publish": "pnpm update && pnpm i && pnpm build"
+  },
+  "workspaces": [
+    "wrappers/*"
+  ],
+  "packageManager": "pnpm@9.3.0",
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.2.4",
+    "turbo": "^2.0.12",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
