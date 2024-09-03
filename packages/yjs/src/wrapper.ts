@@ -1,9 +1,8 @@
-import { create, Patch, rawReturn } from "mutative";
+import { create, Patch, Patches } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
 import { createYTypes } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
-import { isUint8ArrayArray } from "../../shared/src/index.js";
 import { JsonObject } from "type-fest";
 
 export class InvalidStateError extends Error {
@@ -20,40 +19,32 @@ export class InvalidStateError extends Error {
   }
 }
 
+export const ROOT_MAP_NAME = "__root" as const;
+
 // TODO: Add support for constants
 export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   implements CRDTWrapper<T, D, Uint8Array>
 {
-  readonly #yDoc: Readonly<D>;
+  readonly #yDoc: D;
   readonly #yMap: Y.Map<any>;
   readonly #validate: (object: unknown) => object is T;
-  #state!: T;
+  #state: T | undefined;
 
-  constructor(
-    initialData: T | Uint8Array[],
-    validate: (value: unknown) => value is T,
-    clientId?: number
-  ) {
+  constructor(validate: (value: unknown) => value is T, clientId?: number) {
     this.#yDoc = new Y.Doc() as D;
-    this.#yMap = this.#yDoc.getMap("__root");
+    this.#yMap = this.#yDoc.getMap(ROOT_MAP_NAME);
     if (clientId) {
       // @ts-ignore
       this.#yDoc.clientID = clientId;
     }
     this.#validate = validate;
-
-    if (isUint8ArrayArray(initialData)) {
-      this.applyUpdates(initialData);
-    } else {
-      this.#initializeObject(initialData);
-    }
   }
 
-  get yDoc(): Readonly<D> {
+  get yDoc(): D {
     return this.#yDoc;
   }
 
-  get state(): T {
+  get state(): T | undefined {
     return this.#state;
   }
 
@@ -72,13 +63,14 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     }
 
     this.#state = newState;
-    return this.state;
+    return this.#state;
   }
 
   update(changeFn: (value: T) => void): T {
+    let patches: Patches<true>;
     this.#yDoc.transact(() => {
       // @ts-ignore
-      const [, patches] = create(this.#state, changeFn, {
+      [, patches] = create(this.#state ?? {}, changeFn, {
         enablePatches: true,
       });
       for (const patch of patches) {
@@ -92,33 +84,19 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     }
 
     this.#state = newState;
-    return this.state;
+    return this.#state;
   }
 
   [Symbol.dispose](): void {
     this.#yDoc.destroy();
   }
 
-  #getState(): T {
-    return this.#yMap.toJSON() as T;
-  }
-
-  #initializeObject(object: T): void {
-    this.#yDoc.transact(() => {
-      const [, patches] = create({}, () => rawReturn(object as object), {
-        enablePatches: true,
-      });
-      for (const patch of patches) {
-        this.#applyPatch(patch);
-      }
-    });
-
-    const newState = this.#getState();
-    if (!this.#validate(newState)) {
-      throw new InvalidStateError(`Object passed does not match schema!`);
+  #getState(): T | undefined {
+    const state = this.#yMap.toJSON();
+    if (Object.keys(state).length === 0) {
+      return undefined;
     }
-
-    this.#state = newState;
+    return state as T;
   }
 
   #applyPatch(patch: Patch): void {

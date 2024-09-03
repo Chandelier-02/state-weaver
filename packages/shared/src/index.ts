@@ -1,6 +1,6 @@
 import { JsonValue, JsonObject, JsonArray, JsonPrimitive } from "type-fest";
 
-export function isJSONCompatible(value: unknown): value is JsonValue {
+export function isJsonCompatible(value: unknown): value is JsonValue {
   if (
     value === null ||
     typeof value === "string" ||
@@ -11,18 +11,18 @@ export function isJSONCompatible(value: unknown): value is JsonValue {
   }
 
   if (Array.isArray(value)) {
-    return value.every(isJSONCompatible);
+    return value.every(isJsonCompatible);
   }
 
   if (typeof value === "object") {
-    return Object.values(value).every(isJSONCompatible);
+    return Object.values(value).every(isJsonCompatible);
   }
 
   return false;
 }
 
 export function isJsonObject(value: unknown): value is JsonObject {
-  const valueIsCompatible = isJSONCompatible(value);
+  const valueIsCompatible = isJsonCompatible(value);
   if (!valueIsCompatible) {
     return false;
   }
@@ -31,7 +31,7 @@ export function isJsonObject(value: unknown): value is JsonObject {
 }
 
 export function isJsonArray(value: unknown): value is JsonArray {
-  const valueIsCompatible = isJSONCompatible(value);
+  const valueIsCompatible = isJsonCompatible(value);
   if (!valueIsCompatible) {
     return false;
   }
@@ -45,12 +45,6 @@ export function isJsonPrimitive(value: unknown): value is JsonPrimitive {
     typeof value === "number" ||
     typeof value === "string" ||
     value === null
-  );
-}
-
-export function isUint8ArrayArray<T, U>(data: T | U[]): data is U[] {
-  return (
-    Array.isArray(data) && data.every((item) => item instanceof Uint8Array)
   );
 }
 
