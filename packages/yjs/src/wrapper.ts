@@ -56,10 +56,9 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         }
       });
     } else {
-      let patches: Patches<true>;
       this.#yDoc.transact(() => {
         // @ts-ignore
-        [, patches] = create({}, rawReturn(data), {
+        const [, patches] = create({}, () => rawReturn(data), {
           enablePatches: true,
         });
         for (const patch of patches) {
