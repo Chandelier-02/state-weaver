@@ -49,14 +49,12 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   init(data: T | Uint8Array[]): T {
-    if (Array.isArray(data)) {
-      this.#yDoc.transact(() => {
+    this.#yDoc.transact(() => {
+      if (Array.isArray(data)) {
         for (const update of data) {
           Y.applyUpdate(this.#yDoc, update);
         }
-      });
-    } else {
-      this.#yDoc.transact(() => {
+      } else {
         // @ts-ignore
         const [, patches] = create(
           {},
@@ -70,8 +68,8 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         for (const patch of patches) {
           this.#applyPatch(patch);
         }
-      });
-    }
+      }
+    });
 
     const newState = this.#getState();
     if (!this.#validate(newState)) {

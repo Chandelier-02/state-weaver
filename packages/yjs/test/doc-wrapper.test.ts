@@ -24,6 +24,12 @@ describe("YjsWrapper", () => {
     doc = new Y.Doc();
   });
 
+  test("wrapper initialization", () => {
+    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
+    wrapper.init(initialObject);
+    expect(wrapper.state).toEqual(initialObject);
+  });
+
   test("wrap method with object replacement", () => {
     const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper.update(() => initialObject);
