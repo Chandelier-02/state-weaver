@@ -4,6 +4,8 @@ export interface CRDTWrapper<T extends JsonObject, D, U> {
 
   state: T | undefined;
 
+  init(data: T | U[]): T;
+
   applyUpdates(updates: U[]): T;
 
   update(changeFn: (value: T) => void): T;

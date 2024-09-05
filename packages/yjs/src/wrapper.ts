@@ -1,4 +1,4 @@
-import { create, Patch, Patches } from "mutative";
+import { create, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
 import { createYTypes } from "./util.js";
@@ -45,6 +45,35 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   get state(): T | undefined {
+    return this.#state;
+  }
+
+  init(data: T | Uint8Array[]): T {
+    if (Array.isArray(data)) {
+      this.#yDoc.transact(() => {
+        for (const update of data) {
+          Y.applyUpdate(this.#yDoc, update);
+        }
+      });
+    } else {
+      let patches: Patches<true>;
+      this.#yDoc.transact(() => {
+        // @ts-ignore
+        [, patches] = create({}, rawReturn(data), {
+          enablePatches: true,
+        });
+        for (const patch of patches) {
+          this.#applyPatch(patch);
+        }
+      });
+    }
+
+    const newState = this.#getState();
+    if (!this.#validate(newState)) {
+      throw new InvalidStateError(`Update to state breaks schema!`);
+    }
+
+    this.#state = newState;
     return this.#state;
   }
 
