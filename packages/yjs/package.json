@@ -1,6 +1,6 @@
 {
   "name": "@state-weaver/yjs",
-  "version": "0.1.13-beta",
+  "version": "0.1.14-beta",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Chandelier-02",
