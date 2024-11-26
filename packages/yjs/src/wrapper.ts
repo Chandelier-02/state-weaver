@@ -1,9 +1,10 @@
-import { create, Patch, Patches, rawReturn } from "mutative";
+import { create, current, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
-import { createYTypes } from "./util.js";
+import { createYTypes, toPlainValue } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
-import { JsonObject } from "type-fest";
+import { JsonArray, JsonObject, JsonValue } from "type-fest";
+import { isJsonArray, isJsonObject } from "../../shared/src/index.js";
 
 export class InvalidStateError<T> extends Error {
   constructor(
@@ -26,7 +27,6 @@ export class InvalidStateError<T> extends Error {
 
 export const ROOT_MAP_NAME = "__root" as const;
 
-// TODO: Add support for constants
 export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   implements CRDTWrapper<T, D, Uint8Array>
 {
@@ -38,6 +38,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   constructor(validate: (value: unknown) => value is T, clientId?: number) {
     this.#yDoc = new Y.Doc() as D;
     this.#yMap = this.#yDoc.getMap(ROOT_MAP_NAME);
+
     if (clientId) {
       // @ts-ignore
       this.#yDoc.clientID = clientId;
@@ -92,7 +93,25 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   applyUpdates(updates: Uint8Array[]): { newState: T; patches: Patches } {
+    if (!this.#state) {
+      throw new Error(
+        `Wrapper must be initialized before calling applyUpdates`
+      );
+    }
+
     const oldState = this.#state;
+    let patches: Patches = [];
+
+    const observeDeepHandler = (events: Y.YEvent<any>[]) => {
+      [, patches] = create(
+        oldState,
+        // @ts-expect-error Type instantiation is apparently infinite
+        (draft) => this.#applyYEvents(draft, events),
+        { enablePatches: true }
+      );
+    };
+
+    this.#yMap.observeDeep(observeDeepHandler);
 
     this.#yDoc.transact(() => {
       for (const update of updates) {
@@ -100,11 +119,9 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       }
     });
 
-    const newState = this.#getState();
+    this.#yMap.unobserveDeep(observeDeepHandler);
 
-    const [, patches] = create(oldState, () => rawReturn(newState), {
-      enablePatches: true,
-    });
+    const newState = this.#getState();
 
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
@@ -120,12 +137,16 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   update(changeFn: (value: T) => void): { newState: T; patches: Patches } {
-    const oldState = this.#state;
+    if (!this.#state) {
+      throw new Error(`Wrapper must be initialized before calling update`);
+    }
 
+    const oldState = this.#state;
     let patches: Patches<true> = [];
+
     this.#yDoc.transact(() => {
       // @ts-ignore
-      [, patches] = create(this.#state ?? {}, changeFn, {
+      [, patches] = create(this.#state, changeFn, {
         enablePatches: true,
       });
       for (const patch of patches) {
@@ -238,5 +259,85 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         cursor += change[1].length;
       }
     }
+  }
+
+  #applyYEvents(snapshot: T, events: Y.YEvent<any>[]): T {
+    return create(snapshot, (draft) => {
+      for (const event of events) {
+        // @ts-ignore
+        const base = event.path.reduce((obj, step) => {
+          return obj[step];
+        }, current(draft));
+        this.#applyYEvent<typeof base>(base, event);
+      }
+    });
+  }
+
+  #applyYEvent<T extends JsonValue>(base: T, event: Y.YEvent<any>) {
+    if (event instanceof Y.YMapEvent && isJsonObject(base)) {
+      const obj = base as JsonObject;
+      const source = event.target as Y.Map<any>;
+      event.changes.keys.forEach((change, key) => {
+        switch (change.action) {
+          case "add":
+          case "update":
+            obj[key] = toPlainValue(source.get(key));
+            break;
+          case "delete":
+            delete obj[key];
+            break;
+        }
+      });
+    } else if (event instanceof Y.YArrayEvent && isJsonArray(base)) {
+      const arr = base as unknown as any[];
+
+      let retain = 0;
+      event.changes.delta.forEach((change) => {
+        if (change.retain) {
+          retain += change.retain;
+        }
+        if (change.delete) {
+          arr.splice(retain, change.delete);
+        }
+        if (change.insert) {
+          if (Array.isArray(change.insert)) {
+            arr.splice(retain, 0, ...change.insert.map(toPlainValue));
+          } else {
+            arr.splice(retain, 0, toPlainValue(change.insert));
+          }
+          retain += change.insert.length;
+        }
+      });
+    } else if (event instanceof Y.YTextEvent && typeof base === "string") {
+      base = this.#applyYTextEvent(base, event) as T;
+    } else {
+      throw new Error(
+        `Received unsupported YEvent. YEVent type: ${event.constructor.name}`
+      );
+    }
+  }
+
+  #applyYTextEvent(base: string, event: Y.YTextEvent): string {
+    let text = base;
+
+    let retain = 0;
+    for (const change of event.changes.delta) {
+      if (change.retain) {
+        retain += change.retain;
+      }
+      if (change.delete) {
+        const deleteLength = change.delete;
+        text = text.slice(0, retain) + text.slice(retain + deleteLength);
+      }
+      if (change.insert) {
+        const insertText = Array.isArray(change.insert)
+          ? change.insert.join("")
+          : change.insert;
+        text = text.slice(0, retain) + insertText + text.slice(retain);
+        text = insertText;
+        retain += insertText.length;
+      }
+    }
+    return text;
   }
 }

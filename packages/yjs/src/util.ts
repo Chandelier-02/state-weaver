@@ -1,15 +1,11 @@
 import * as Y from "yjs";
-import { JsonArray, JsonObject, JsonPrimitive } from "type-fest";
+import { JsonArray, JsonObject, JsonPrimitive, JsonValue } from "type-fest";
 import {
   isJsonArray,
   isJsonObject,
   isJsonPrimitive,
   IllegalValueError,
 } from "../../shared/src/index.js";
-
-/**
- * Okay, so values of an object can be defined as constants
- */
 
 export function createYTypes(
   value: unknown
@@ -66,4 +62,12 @@ export function createYTypesFromArray(array: JsonArray): Y.Array<any> {
     }
   }
   return yArray;
+}
+
+export function toPlainValue(v: Y.Map<any> | Y.Array<any> | JsonValue) {
+  if (v instanceof Y.Map || v instanceof Y.Array) {
+    return v.toJSON() as JsonObject | JsonArray;
+  } else {
+    return v;
+  }
 }
