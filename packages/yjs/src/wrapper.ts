@@ -5,8 +5,13 @@ import { createYTypes } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
 import { JsonObject } from "type-fest";
 
-export class InvalidStateError extends Error {
-  constructor(message: string) {
+export class InvalidStateError<T> extends Error {
+  constructor(
+    public message: string,
+    public oldState: T | undefined,
+    public newState: unknown,
+    public patches?: Patches
+  ) {
     super(message);
     this.name = this.constructor.name;
     // @ts-ignore // TODO: Figure out why this is giving my type issues...
@@ -49,6 +54,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   init(data: T | Uint8Array[]): T {
+    let patches: Patches<true> = [];
     this.#yDoc.transact(() => {
       if (Array.isArray(data)) {
         for (const update of data) {
@@ -56,7 +62,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         }
       } else {
         // @ts-ignore
-        const [, patches] = create(
+        [, patches] = create(
           {},
           () => {
             return rawReturn(data);
@@ -73,24 +79,11 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
     const newState = this.#getState();
     if (!this.#validate(newState)) {
-      throw new InvalidStateError(`Update to state breaks schema!`);
-    }
-
-    this.#state = newState;
-    return this.#state;
-  }
-
-  applyUpdates(updates: Uint8Array[]): T {
-    this.#yDoc.transact(() => {
-      for (const update of updates) {
-        Y.applyUpdate(this.#yDoc, update);
-      }
-    });
-
-    const newState = this.#getState();
-    if (!this.#validate(newState)) {
       throw new InvalidStateError(
-        `Object generated from applied updates breaks schema!`
+        `Update to state breaks schema!`,
+        undefined,
+        newState,
+        patches
       );
     }
 
@@ -98,8 +91,39 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     return this.#state;
   }
 
-  update(changeFn: (value: T) => void): T {
-    let patches: Patches<true>;
+  applyUpdates(updates: Uint8Array[]): { newState: T; patches: Patches } {
+    const oldState = this.#state;
+
+    this.#yDoc.transact(() => {
+      for (const update of updates) {
+        Y.applyUpdate(this.#yDoc, update);
+      }
+    });
+
+    const newState = this.#getState();
+
+    // @ts-ignore
+    const [, patches] = create(oldState, (draft) => (draft = newState), {
+      enablePatches: true,
+    });
+
+    if (!this.#validate(newState)) {
+      throw new InvalidStateError(
+        `Object generated from applied updates breaks schema!`,
+        oldState,
+        newState,
+        patches
+      );
+    }
+
+    this.#state = newState;
+    return { newState, patches };
+  }
+
+  update(changeFn: (value: T) => void): { newState: T; patches: Patches } {
+    const oldState = this.#state;
+
+    let patches: Patches<true> = [];
     this.#yDoc.transact(() => {
       // @ts-ignore
       [, patches] = create(this.#state ?? {}, changeFn, {
@@ -112,11 +136,16 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
     const newState = this.#getState();
     if (!this.#validate(newState)) {
-      throw new InvalidStateError(`Update to state breaks schema!`);
+      throw new InvalidStateError(
+        `Update to state breaks schema!`,
+        oldState,
+        newState,
+        patches
+      );
     }
 
     this.#state = newState;
-    return this.#state;
+    return { newState: this.#state, patches };
   }
 
   [Symbol.dispose](): void {
