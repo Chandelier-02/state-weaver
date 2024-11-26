@@ -1,4 +1,4 @@
-import { create, current, Patch, Patches, rawReturn } from "mutative";
+import { create, current, Draft, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
 import { createYTypes, toPlainValue } from "./util.js";
@@ -105,7 +105,6 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     const observeDeepHandler = (events: Y.YEvent<any>[]) => {
       [, patches] = create(
         oldState,
-        // @ts-expect-error Type instantiation is apparently infinite
         (draft) => this.#applyYEvents(draft, events),
         { enablePatches: true }
       );
@@ -261,16 +260,14 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     }
   }
 
-  #applyYEvents(snapshot: T, events: Y.YEvent<any>[]): T {
-    return create(snapshot, (draft) => {
-      for (const event of events) {
-        // @ts-ignore
-        const base = event.path.reduce((obj, step) => {
-          return obj[step];
-        }, current(draft));
-        this.#applyYEvent<typeof base>(base, event);
-      }
-    });
+  #applyYEvents(draft: Draft<T>, events: Y.YEvent<any>[]): void {
+    for (const event of events) {
+      // @ts-ignore
+      const base = event.path.reduce((obj, step) => {
+        return obj[step];
+      }, current(draft));
+      this.#applyYEvent<typeof base>(base, event);
+    }
   }
 
   #applyYEvent<T extends JsonValue>(base: T, event: Y.YEvent<any>) {
