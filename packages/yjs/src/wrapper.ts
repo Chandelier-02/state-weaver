@@ -4,7 +4,8 @@ import createStringPatches, { Change } from "textdiff-create";
 import { createYTypes } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
 import { JsonObject } from "type-fest";
-import { compare } from "fast-json-patch";
+import fastPatch from "fast-json-patch";
+const { compare } = fastPatch;
 
 export class InvalidStateError<T> extends Error {
   constructor(
