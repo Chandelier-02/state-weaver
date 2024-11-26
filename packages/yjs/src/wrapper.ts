@@ -100,14 +100,15 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     }
 
     const oldState = this.#state;
-    let patches: Patches = [];
+    let totalPatches: Patches<true> = [];
 
     const observeDeepHandler = (events: Y.YEvent<any>[]) => {
-      [, patches] = create(
+      const [, patches] = create(
         oldState,
         (draft) => this.#applyYEvents(draft, events),
         { enablePatches: true, strict: false }
       );
+      totalPatches.push(...patches);
     };
 
     this.#yMap.observeDeep(observeDeepHandler);
@@ -127,12 +128,12 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         `Object generated from applied updates breaks schema!`,
         oldState,
         newState,
-        patches
+        totalPatches
       );
     }
 
     this.#state = newState;
-    return { newState, patches };
+    return { newState, patches: totalPatches };
   }
 
   update(changeFn: (value: T) => void): { newState: T; patches: Patches } {
