@@ -102,8 +102,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
     const newState = this.#getState();
 
-    // @ts-ignore
-    const [, patches] = create(oldState, (draft) => (draft = newState), {
+    const [, patches] = create(oldState, () => rawReturn(newState), {
       enablePatches: true,
     });
 
