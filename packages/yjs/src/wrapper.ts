@@ -106,7 +106,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       [, patches] = create(
         oldState,
         (draft) => this.#applyYEvents(draft, events),
-        { enablePatches: true }
+        { enablePatches: true, strict: false }
       );
     };
 
