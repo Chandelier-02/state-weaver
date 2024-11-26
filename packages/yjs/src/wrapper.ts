@@ -1,10 +1,10 @@
-import { create, current, Draft, Patch, Patches, rawReturn } from "mutative";
+import { create, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
-import { createYTypes, toPlainValue } from "./util.js";
+import { createYTypes } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
-import { JsonArray, JsonObject, JsonValue } from "type-fest";
-import { isJsonArray, isJsonObject } from "../../shared/src/index.js";
+import { JsonObject } from "type-fest";
+import { compare } from "fast-json-patch";
 
 export class InvalidStateError<T> extends Error {
   constructor(
@@ -101,28 +101,15 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
     const oldState = this.#state;
 
-    let totalEvents: Y.YEvent<any>[] = [];
-    const observeDeepHandler = (events: Y.YEvent<any>[]) => {
-      totalEvents.push(...events);
-    };
-
-    const [, patches] = create(
-      oldState,
-      (draft) => this.#applyYEvents(draft, totalEvents),
-      { enablePatches: true, strict: false }
-    );
-
-    this.#yMap.observeDeep(observeDeepHandler);
-
     this.#yDoc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.#yDoc, update);
       }
     });
 
-    this.#yMap.unobserveDeep(observeDeepHandler);
+    const newState = this.#getState()!;
 
-    const newState = this.#getState();
+    const patches = compare(oldState, newState) as Patches;
 
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
@@ -260,83 +247,5 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         cursor += change[1].length;
       }
     }
-  }
-
-  #applyYEvents(draft: Draft<T>, events: Y.YEvent<any>[]): void {
-    for (const event of events) {
-      // @ts-ignore
-      const base = event.path.reduce((obj, step) => {
-        return obj[step];
-      }, current(draft));
-      this.#applyYEvent<typeof base>(base, event);
-    }
-  }
-
-  #applyYEvent<T extends JsonValue>(base: T, event: Y.YEvent<any>) {
-    if (event instanceof Y.YMapEvent && isJsonObject(base)) {
-      const obj = base as JsonObject;
-      const source = event.target as Y.Map<any>;
-      event.changes.keys.forEach((change, key) => {
-        switch (change.action) {
-          case "add":
-          case "update":
-            obj[key] = toPlainValue(source.get(key));
-            break;
-          case "delete":
-            delete obj[key];
-            break;
-        }
-      });
-    } else if (event instanceof Y.YArrayEvent && isJsonArray(base)) {
-      const arr = base as unknown as any[];
-
-      let retain = 0;
-      event.changes.delta.forEach((change) => {
-        if (change.retain) {
-          retain += change.retain;
-        }
-        if (change.delete) {
-          arr.splice(retain, change.delete);
-        }
-        if (change.insert) {
-          if (Array.isArray(change.insert)) {
-            arr.splice(retain, 0, ...change.insert.map(toPlainValue));
-          } else {
-            arr.splice(retain, 0, toPlainValue(change.insert));
-          }
-          retain += change.insert.length;
-        }
-      });
-    } else if (event instanceof Y.YTextEvent && typeof base === "string") {
-      base = this.#applyYTextEvent(base, event) as T;
-    } else {
-      throw new Error(
-        `Received unsupported YEvent. YEVent type: ${event.constructor.name}`
-      );
-    }
-  }
-
-  #applyYTextEvent(base: string, event: Y.YTextEvent): string {
-    let text = base;
-
-    let retain = 0;
-    for (const change of event.changes.delta) {
-      if (change.retain) {
-        retain += change.retain;
-      }
-      if (change.delete) {
-        const deleteLength = change.delete;
-        text = text.slice(0, retain) + text.slice(retain + deleteLength);
-      }
-      if (change.insert) {
-        const insertText = Array.isArray(change.insert)
-          ? change.insert.join("")
-          : change.insert;
-        text = text.slice(0, retain) + insertText + text.slice(retain);
-        text = insertText;
-        retain += insertText.length;
-      }
-    }
-    return text;
   }
 }
