@@ -196,9 +196,16 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     if (base instanceof Y.Map && typeof property === "string") {
       switch (op) {
         case "add":
+          base.set(property, createYTypes(value));
+          break;
         case "replace":
           if (typeof value === "string") {
-            const yText = base.get(property) as Y.Text;
+            const yText = base.get(property) as Y.Text | undefined;
+            if (!yText) {
+              base.set(property, createYTypes(value));
+              break;
+            }
+
             const string = yText.toJSON();
             const patches = createStringPatches(string, value);
             this.#applyStringPatches(yText, patches);
