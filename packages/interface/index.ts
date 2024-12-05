@@ -6,11 +6,13 @@ export interface CRDTWrapper<T extends JsonObject, D, U> {
 
   state: T | undefined;
 
-  init(data: T | U[]): T;
+  init(data: T | U[]): Promise<T>;
 
-  applyUpdates(updates: U[]): { newState: T; patches: Patches };
+  applyUpdates(updates: U[]): Promise<{ newState: T; patches: Patches }>;
 
-  update(changeFn: (value: T) => void): { newState: T; patches: Patches };
+  update(
+    changeFn: (value: T) => void
+  ): Promise<{ newState: T; patches: Patches }>;
 
   [Symbol.dispose](): void;
 }

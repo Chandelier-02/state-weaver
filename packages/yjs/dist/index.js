@@ -1,80 +1,131 @@
-import { create, Patch, Patches, rawReturn } from "mutative";
-import * as Y from "yjs";
-import createStringPatches, { Change } from "textdiff-create";
-import { createYTypes } from "./util.js";
-import { CRDTWrapper } from "@state-weaver/interface";
-import { JsonObject } from "type-fest";
-import fastPatch from "fast-json-patch";
-const { compare } = fastPatch;
+// src/wrapper.ts
+import { create, rawReturn } from "mutative";
+import * as Y2 from "yjs";
+import createStringPatches from "textdiff-create";
 
-export class InvalidStateError<T> extends Error {
-  constructor(
-    public message: string,
-    public oldState: T | undefined,
-    public newState: unknown,
-    public patches?: Patches
-  ) {
-    super(message);
+// src/util.ts
+import * as Y from "yjs";
+
+// ../shared/src/index.ts
+function isJsonCompatible(value) {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isJsonCompatible);
+  }
+  if (typeof value === "object") {
+    return Object.values(value).every(isJsonCompatible);
+  }
+  return false;
+}
+function isJsonObject(value) {
+  const valueIsCompatible = isJsonCompatible(value);
+  if (!valueIsCompatible) {
+    return false;
+  }
+  return typeof value === "object" && !Array.isArray(value);
+}
+function isJsonArray(value) {
+  const valueIsCompatible = isJsonCompatible(value);
+  if (!valueIsCompatible) {
+    return false;
+  }
+  return typeof value === "object" && Array.isArray(value);
+}
+function isJsonPrimitive(value) {
+  return typeof value === "boolean" || typeof value === "number" || typeof value === "string" || value === null;
+}
+var IllegalValueError = class extends Error {
+  illegalValue;
+  constructor(illegalValue) {
+    super(`Value does not align with Json`);
+    this.illegalValue = illegalValue;
     this.name = this.constructor.name;
-    // @ts-ignore // TODO: Figure out why this is giving my type issues...
-    if (
-      "captureStackTrace" in Error &&
-      typeof Error.captureStackTrace === "function"
-    ) {
+    if ("captureStackTrace" in Error && typeof Error.captureStackTrace === "function") {
       Error.captureStackTrace(this, this.constructor);
     }
   }
+};
+
+// src/util.ts
+function createYTypes(value) {
+  if (isJsonObject(value)) {
+    const yMap = new Y.Map();
+    for (const [key, subValue] of Object.entries(value)) {
+      yMap.set(key, createYTypes(subValue));
+    }
+    return yMap;
+  } else if (isJsonArray(value)) {
+    const yArray = new Y.Array();
+    for (const entry of value) {
+      yArray.push([createYTypes(entry)]);
+    }
+    return yArray;
+  } else if (isJsonPrimitive(value)) {
+    if (typeof value === "string") {
+      return new Y.Text(value);
+    }
+    return value;
+  } else {
+    throw new IllegalValueError(value);
+  }
 }
 
-export const ROOT_MAP_NAME = "__root" as const;
-
-export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
-  implements CRDTWrapper<T, D, Uint8Array>
-{
-  readonly #yDoc: D;
-  readonly #yMap: Y.Map<any>;
-  readonly #validate: (object: unknown) => object is T;
-  #state: T | undefined;
-
-  constructor(validate: (value: unknown) => value is T, clientId?: number) {
-    this.#yDoc = new Y.Doc() as D;
+// src/wrapper.ts
+import fastPatch from "fast-json-patch";
+var { compare } = fastPatch;
+var InvalidStateError = class extends Error {
+  constructor(message, oldState, newState, patches) {
+    super(message);
+    this.message = message;
+    this.oldState = oldState;
+    this.newState = newState;
+    this.patches = patches;
+    this.name = this.constructor.name;
+    if ("captureStackTrace" in Error && typeof Error.captureStackTrace === "function") {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+};
+var ROOT_MAP_NAME = "__root";
+var YjsWrapper = class {
+  #yDoc;
+  #yMap;
+  #validate;
+  #state;
+  constructor(validate, clientId) {
+    this.#yDoc = new Y2.Doc();
     this.#yMap = this.#yDoc.getMap(ROOT_MAP_NAME);
-
     if (clientId) {
-      // @ts-ignore
       this.#yDoc.clientID = clientId;
     }
     this.#validate = validate;
   }
-
-  get yDoc(): D {
+  get yDoc() {
     return this.#yDoc;
   }
-
-  get state(): T | undefined {
+  get state() {
     return this.#state;
   }
-
   // @ts-ignore
-  async init(data: T | Uint8Array[]): Promise<T> {
-    let patches: Patches<true> = [];
-
-    await new Promise<void>((resolve) => {
+  async init(data) {
+    let patches = [];
+    await new Promise((resolve) => {
       this.#yDoc.once("update", () => resolve());
       this.#yDoc.transact(() => {
         if (Array.isArray(data)) {
           for (const update of data) {
-            Y.applyUpdate(this.#yDoc, update);
+            Y2.applyUpdate(this.#yDoc, update);
           }
         } else {
-          // @ts-ignore
           [, patches] = create(
             {},
             () => {
               return rawReturn(data);
             },
             {
-              enablePatches: true,
+              enablePatches: true
             }
           );
           for (const patch of patches) {
@@ -83,46 +134,36 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         }
       });
     });
-
     const newState = this.#getState();
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
         `Update to state breaks schema!`,
-        undefined,
+        void 0,
         newState,
         patches
       );
     }
-
     this.#state = newState;
     return this.#state;
   }
-
   //@ts-ignore
-  async applyUpdates(
-    updates: Uint8Array[]
-  ): Promise<{ newState: T; patches: Patches }> {
+  async applyUpdates(updates) {
     if (!this.#state) {
       throw new Error(
         `Wrapper must be initialized before calling applyUpdates`
       );
     }
-
     const oldState = this.#state;
-
-    await new Promise<void>((resolve) => {
+    await new Promise((resolve) => {
       this.#yDoc.once("update", () => resolve());
       this.#yDoc.transact(() => {
         for (const update of updates) {
-          Y.applyUpdate(this.#yDoc, update);
+          Y2.applyUpdate(this.#yDoc, update);
         }
       });
     });
-
-    const newState = this.#getState()!;
-
-    const patches = compare(oldState, newState) as Patches;
-
+    const newState = this.#getState();
+    const patches = compare(oldState, newState);
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
         `Object generated from applied updates breaks schema!`,
@@ -131,38 +172,27 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         patches
       );
     }
-
     this.#state = newState;
     return { newState, patches };
   }
-
   //@ts-ignore
-  async update(changeFn: (value: T) => void): Promise<{
-    newState: T;
-    patches: Patches;
-  }> {
+  async update(changeFn) {
     if (!this.#state) {
       throw new Error(`Wrapper must be initialized before calling update`);
     }
-
     const oldState = this.#state;
-    let patches: Patches<true> = [];
-
-    // ensure the updates are applied correctly
-    await new Promise<void>((resolve) => {
+    let patches = [];
+    await new Promise((resolve) => {
       this.#yDoc.once("update", () => resolve());
-
       this.#yDoc.transact(() => {
-        // @ts-ignore
         [, patches] = create(this.#state, changeFn, {
-          enablePatches: true,
+          enablePatches: true
         });
         for (const patch of patches) {
           this.#applyPatch(patch);
         }
       });
     });
-
     const newState = this.#getState();
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
@@ -172,31 +202,25 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
         patches
       );
     }
-
     this.#state = newState;
     return { newState: this.#state, patches };
   }
-
-  [Symbol.dispose](): void {
+  [Symbol.dispose]() {
     this.#yDoc.destroy();
   }
-
-  #getState(): T | undefined {
+  #getState() {
     const state = this.#yMap.toJSON();
     if (Object.keys(state).length === 0) {
-      return undefined;
+      return void 0;
     }
-    return state as T;
+    return state;
   }
-
-  #applyPatch(patch: Patch): void {
+  #applyPatch(patch) {
     const { path, op, value } = patch;
-
     if (path.length === 0) {
       if (op !== "replace") {
         throw new Error("Cannot add or remove elements from top level object!");
       }
-
       this.#yMap.clear();
       for (const k in value) {
         const yType = createYTypes(value[k]);
@@ -204,28 +228,24 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       }
       return;
     }
-
-    let base: Y.Map<any> | Y.Array<any> = this.#yMap;
+    let base = this.#yMap;
     for (let i = 0; i < path.length - 1; i++) {
       const step = path[i];
-      base = base.get(step as never);
+      base = base.get(step);
     }
-
     const property = path[path.length - 1];
-
-    if (base instanceof Y.Map && typeof property === "string") {
+    if (base instanceof Y2.Map && typeof property === "string") {
       switch (op) {
         case "add":
           base.set(property, createYTypes(value));
           break;
         case "replace":
           if (typeof value === "string") {
-            const yText = base.get(property) as Y.Text | undefined;
+            const yText = base.get(property);
             if (!yText) {
               base.set(property, createYTypes(value));
               break;
             }
-
             const string = yText.toJSON();
             const patches = createStringPatches(string, value);
             this.#applyStringPatches(yText, patches);
@@ -237,8 +257,8 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
           base.delete(property);
           break;
       }
-    } else if (base instanceof Y.Array && typeof property === "number") {
-      base = base as Y.Array<any>;
+    } else if (base instanceof Y2.Array && typeof property === "number") {
+      base = base;
       switch (op) {
         case "add":
           base.insert(property, [createYTypes(value)]);
@@ -251,7 +271,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
           base.delete(property);
           break;
       }
-    } else if (base instanceof Y.Array && property === "length") {
+    } else if (base instanceof Y2.Array && property === "length") {
       if (value < base.length) {
         const diff = base.length - value;
         base.delete(value, diff);
@@ -262,8 +282,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       );
     }
   }
-
-  #applyStringPatches(target: Y.Text, patches: Change[]): void {
+  #applyStringPatches(target, patches) {
     let cursor = 0;
     for (const change of patches) {
       if (change[0] === -1) {
@@ -276,4 +295,9 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       }
     }
   }
-}
+};
+export {
+  InvalidStateError,
+  ROOT_MAP_NAME,
+  YjsWrapper
+};
