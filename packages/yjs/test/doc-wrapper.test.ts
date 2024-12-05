@@ -683,7 +683,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     originalWrapper.init(initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
     const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
@@ -705,7 +705,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     });
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
     const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
@@ -736,7 +736,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     });
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
     const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
@@ -762,7 +762,7 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     originalWrapper.init(initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdate(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
 
     // Create a new wrapper using the state update
     const newWrapper = new YjsWrapper<typeof initialObject>(
@@ -807,7 +807,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper1.init(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof initialObject>(
       alwaysTrue<typeof initialObject>
@@ -821,7 +821,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.key = "newDeepValue";
     });
 
-    const objectModificationUpdate = Y.encodeStateAsUpdate(
+    const objectModificationUpdate = Y.encodeStateAsUpdateV2(
       wrapper1.yDoc,
       svBeforeChange
     );
@@ -838,7 +838,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper1.init(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper2.init([wrapper1InitialUpdate]);
@@ -850,7 +850,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.array.push(4, 5, 6);
     });
 
-    const arrayModificationUpdate = Y.encodeStateAsUpdate(
+    const arrayModificationUpdate = Y.encodeStateAsUpdateV2(
       wrapper1.yDoc,
       svBeforeChange
     );
@@ -869,7 +869,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
     wrapper1.init(nestedArrayObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper2.init([wrapper1InitialUpdate]);
@@ -881,7 +881,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       (snapshot.nested.array[0] as number[]).push(5);
     });
 
-    const nestedModificationUpdate = Y.encodeStateAsUpdate(
+    const nestedModificationUpdate = Y.encodeStateAsUpdateV2(
       wrapper1.yDoc,
       svBeforeChange
     );
@@ -898,7 +898,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper1.init(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper2.init([wrapper1InitialUpdate]);
@@ -910,7 +910,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.key1 = "newValue1";
     });
 
-    const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
 
     const svBeforeChange2 = Y.encodeStateVector(wrapper1.yDoc);
 
@@ -918,7 +918,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.key2 = "newValue2";
     });
 
-    const update2 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange2);
 
     // Apply updates to the second wrapper
     wrapper2.applyUpdates([update1, update2]);
@@ -941,7 +941,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
 
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof deepObject>);
     wrapper1.init(deepObject);
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper2.init([wrapper1InitialUpdate]);
@@ -954,7 +954,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.array.push(4, 5);
     });
 
-    const deepModificationUpdate = Y.encodeStateAsUpdate(
+    const deepModificationUpdate = Y.encodeStateAsUpdateV2(
       wrapper1.yDoc,
       svBeforeChange
     );
@@ -972,7 +972,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper1.init(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof initialObject>(
       alwaysTrue<typeof initialObject>
@@ -987,7 +987,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.key = "newDeepValue1";
     });
 
-    const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -997,7 +997,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.key = "newDeepValue2";
     });
 
-    const update2 = Y.encodeStateAsUpdate(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1010,7 +1010,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   test("synchronize interleaved array modifications between wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
     wrapper1.init(initialObject);
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof initialObject>(
       alwaysTrue<typeof initialObject>
@@ -1025,7 +1025,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.array.push(4);
     });
 
-    const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1035,7 +1035,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.array.push(5);
     });
 
-    const update2 = Y.encodeStateAsUpdate(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1051,7 +1051,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
     wrapper1.init(nestedArrayObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof nestedArrayObject>(
       alwaysTrue<typeof nestedArrayObject>
@@ -1066,7 +1066,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       (snapshot.nested.array[0] as number[]).push(5);
     });
 
-    const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1076,7 +1076,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       (snapshot.nested.array[0] as number[]).push(6);
     });
 
-    const update2 = Y.encodeStateAsUpdate(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1099,7 +1099,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     const wrapper1 = new YjsWrapper(alwaysTrue<typeof deepObject>);
     wrapper1.init(deepObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdate(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
     const wrapper2 = new YjsWrapper<typeof deepObject>(
       alwaysTrue<typeof deepObject>
@@ -1115,7 +1115,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.array.push(4);
     });
 
-    const update1 = Y.encodeStateAsUpdate(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1126,7 +1126,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.array.push(5);
     });
 
-    const update2 = Y.encodeStateAsUpdate(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1205,7 +1205,7 @@ describe("YjsWrapper", () => {
 //       snapshot.level1.level2.key = "test";
 //     });
 
-//     const wrapper1UpdateState = Y.encodeStateAsUpdate(wrapper1.yDoc);
+//     const wrapper1UpdateState = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
 
 //     wrapper2.applyUpdates([wrapper1UpdateState]);
 

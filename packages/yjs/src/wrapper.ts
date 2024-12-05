@@ -60,7 +60,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     this.#yDoc.transact(() => {
       if (Array.isArray(data)) {
         for (const update of data) {
-          Y.applyUpdate(this.#yDoc, update);
+          Y.applyUpdateV2(this.#yDoc, update);
         }
       } else {
         // @ts-ignore
@@ -104,7 +104,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
     this.#yDoc.transact(() => {
       for (const update of updates) {
-        Y.applyUpdate(this.#yDoc, update);
+        Y.applyUpdateV2(this.#yDoc, update);
       }
     });
 
