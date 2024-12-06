@@ -1,73 +1,58 @@
 import * as Y from "yjs";
-import { JsonArray, JsonObject, JsonPrimitive, JsonValue } from "type-fest";
+import { JsonObject, JsonPrimitive } from "type-fest";
 import {
   isJsonArray,
   isJsonObject,
   isJsonPrimitive,
   IllegalValueError,
 } from "../../shared/src/index.js";
+import { StringPropertyPath } from "./types.js";
 
-export function createYTypes(
-  value: unknown
+export function isYTextPath<T extends JsonObject>(
+  yTextPaths: Set<StringPropertyPath<T>>,
+  pathParts: (string | number)[]
+): boolean {
+  let path = "";
+  for (const part of pathParts) {
+    if (typeof part === "number") {
+      path += "[]";
+    } else {
+      path += path ? `.${part}` : part;
+    }
+  }
+
+  return yTextPaths.has(path as StringPropertyPath<T>);
+}
+
+export function createYTypes<T extends JsonObject>(
+  value: unknown,
+  yTextPaths: Set<StringPropertyPath<T>>,
+  currentPathParts: (string | number)[] = []
 ): Y.Map<any> | Y.Array<any> | Y.Text | JsonPrimitive {
   if (isJsonObject(value)) {
     const yMap = new Y.Map();
     for (const [key, subValue] of Object.entries(value)) {
-      yMap.set(key, createYTypes(subValue));
+      currentPathParts.push(key);
+      yMap.set(key, createYTypes<T>(subValue, yTextPaths, currentPathParts));
+      currentPathParts.pop();
     }
     return yMap;
   } else if (isJsonArray(value)) {
     const yArray = new Y.Array();
-    for (const entry of value) {
-      yArray.push([createYTypes(entry)]);
+    for (let i = 0; i < value.length; i++) {
+      currentPathParts.push(i);
+      yArray.push([createYTypes<T>(value[i], yTextPaths, currentPathParts)]);
+      currentPathParts.pop();
     }
     return yArray;
   } else if (isJsonPrimitive(value)) {
     if (typeof value === "string") {
-      return new Y.Text(value);
+      if (isYTextPath<T>(yTextPaths, currentPathParts)) {
+        return new Y.Text(value);
+      }
     }
     return value;
   } else {
     throw new IllegalValueError(value);
-  }
-}
-
-export function createYTypesFromObject(object: JsonObject): Y.Map<any> {
-  const yMap = new Y.Map();
-  for (const [key, subValue] of Object.entries(object)) {
-    if (isJsonObject(subValue)) {
-      yMap.set(key, createYTypesFromObject(subValue));
-    } else if (isJsonArray(subValue)) {
-      yMap.set(key, createYTypesFromArray(subValue));
-    } else if (isJsonPrimitive(subValue)) {
-      yMap.set(key, subValue);
-    } else {
-      throw new IllegalValueError(subValue);
-    }
-  }
-  return yMap;
-}
-
-export function createYTypesFromArray(array: JsonArray): Y.Array<any> {
-  const yArray = new Y.Array();
-  for (const value of array) {
-    if (isJsonObject(value)) {
-      yArray.push([createYTypesFromObject(value)]);
-    } else if (isJsonArray(value)) {
-      yArray.push([createYTypesFromArray(value)]);
-    } else if (isJsonPrimitive(value)) {
-      yArray.push([value]);
-    } else {
-      throw new IllegalValueError(value);
-    }
-  }
-  return yArray;
-}
-
-export function toPlainValue(v: Y.Map<any> | Y.Array<any> | JsonValue) {
-  if (v instanceof Y.Map || v instanceof Y.Array) {
-    return v.toJSON() as JsonObject | JsonArray;
-  } else {
-    return v;
   }
 }

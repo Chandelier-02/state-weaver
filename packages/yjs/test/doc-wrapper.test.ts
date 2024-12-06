@@ -1,6 +1,7 @@
 import { YjsWrapper } from "../src/index.js";
 import * as Y from "yjs";
 import { describe, expect, test, beforeEach } from "vitest";
+import { StringPropertyPath } from "../src/types.js";
 
 function alwaysTrue<T>(value: any): value is T {
   return true;
@@ -1178,41 +1179,55 @@ describe("YjsWrapper", () => {
   });
 });
 
-// describe("Test specific yjs use case", async () => {
-//   test("Won't duplicate information", async () => {
-//     const deepSchema = defineSchema({
-//       level1: {
-//         level2: {
-//           key: "string",
-//           array: ["number"],
-//         },
-//       },
-//     });
+describe("More text tests", () => {
+  test.skip("Should be able to do simple replacements on date strings", async () => {
+    const wrapper = new YjsWrapper<{ str: string }>(alwaysTrue);
+    wrapper.init({ str: new Date().toISOString() });
 
-//     const deepObject = {
-//       level1: {
-//         level2: {
-//           key: "deepValue",
-//           array: [1, 2, 3],
-//         },
-//       },
-//     };
+    for (let i = 0; i < 10_000; i++) {
+      const date = new Date().toISOString();
+      const { newState } = wrapper.update((snapshot) => {
+        snapshot.str = date;
+      });
+      expect({ str: date }).toEqual(newState);
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), 5));
+    }
+  }, 100_000);
 
-//     const wrapper1 = new YjsWrapper(deepSchema, deepObject);
-//     const wrapper2 = new YjsWrapper(deepSchema, deepObject);
+  test("Should be able to differentiate between text and Y.Text based on paths given", () => {
+    type TestObject = {
+      p1: {
+        a1: { n_p1: string }[];
+      };
+      p2: string;
+      p3: Record<string, { n_p3: string }>;
+    };
+    const testObj: TestObject = {
+      p1: {
+        a1: [
+          {
+            n_p1: "hello",
+          },
+        ],
+      },
+      p2: "world",
+      p3: {},
+    };
 
-//     wrapper1.update((snapshot) => {
-//       snapshot.level1.level2.key = "test";
-//     });
-
-//     const wrapper1UpdateState = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
-
-//     wrapper2.applyUpdates([wrapper1UpdateState]);
-
-//     // console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper1.yDoc)));
-//     // console.log(Y.decodeStateVector(Y.encodeStateVector(wrapper2.yDoc)));
-
-//     // TODO: Look into StructStore.addStruct references. That function determines what is added to the store and in what order.
-//     expect(wrapper1.state).toEqual(wrapper2.state);
-//   });
-// });
+    const yTextSet = new Set<StringPropertyPath<TestObject>>(["p1.a1[].n_p1"]);
+    const wrapper = new YjsWrapper<TestObject>(alwaysTrue, yTextSet);
+    wrapper.init(testObj);
+    wrapper.update((snapshot) => {
+      snapshot.p1.a1[0].n_p1 = snapshot.p1.a1[0].n_p1 + "new text";
+    });
+    wrapper.update((snapshot) => {
+      snapshot.p1.a1.push({ n_p1: "new created object" });
+    });
+    wrapper.update((snapshot) => {
+      snapshot.p3["newProperty"] = { n_p3: "new property created" };
+    });
+    wrapper.update((snapshot) => {
+      snapshot.p2 = "well this is different";
+    });
+  });
+});

@@ -1,10 +1,11 @@
 import { create, Patch, Patches, rawReturn } from "mutative";
 import * as Y from "yjs";
 import createStringPatches, { Change } from "textdiff-create";
-import { createYTypes } from "./util.js";
+import { createYTypes, isYTextPath } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
 import { JsonObject } from "type-fest";
 import fastPatch from "fast-json-patch";
+import { StringPropertyPath } from "./types.js";
 const { compare } = fastPatch;
 
 export class InvalidStateError<T> extends Error {
@@ -34,9 +35,14 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   readonly #yDoc: D;
   readonly #yMap: Y.Map<any>;
   readonly #validate: (object: unknown) => object is T;
+  readonly #yTextPaths: Set<StringPropertyPath<T>>;
   #state: T | undefined;
 
-  constructor(validate: (value: unknown) => value is T, clientId?: number) {
+  constructor(
+    validate: (value: unknown) => value is T,
+    yTextPaths?: Set<StringPropertyPath<T>>,
+    clientId?: number
+  ) {
     this.#yDoc = new Y.Doc() as D;
     this.#yMap = this.#yDoc.getMap(ROOT_MAP_NAME);
 
@@ -45,6 +51,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       this.#yDoc.clientID = clientId;
     }
     this.#validate = validate;
+    this.#yTextPaths = yTextPaths ?? new Set<StringPropertyPath<T>>();
   }
 
   get yDoc(): D {
@@ -170,7 +177,11 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   }
 
   #applyPatch(patch: Patch): void {
-    const { path, op, value } = patch;
+    let { path, op, value } = patch;
+
+    if (typeof path === "string") {
+      path = [path];
+    }
 
     if (path.length === 0) {
       if (op !== "replace") {
@@ -179,7 +190,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
 
       this.#yMap.clear();
       for (const k in value) {
-        const yType = createYTypes(value[k]);
+        const yType = createYTypes<T>(value[k], this.#yTextPaths, [...path, k]);
         this.#yMap.set(k, yType);
       }
       return;
@@ -196,21 +207,25 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
     if (base instanceof Y.Map && typeof property === "string") {
       switch (op) {
         case "add":
-          base.set(property, createYTypes(value));
+          base.set(property, createYTypes(value, this.#yTextPaths, path));
           break;
         case "replace":
           if (typeof value === "string") {
-            const yText = base.get(property) as Y.Text | undefined;
-            if (!yText) {
-              base.set(property, createYTypes(value));
-              break;
-            }
+            if (isYTextPath(this.#yTextPaths, path)) {
+              const yText = base.get(property) as Y.Text | undefined;
+              if (!yText) {
+                base.set(property, createYTypes(value, this.#yTextPaths, path));
+                break;
+              }
 
-            const string = yText.toJSON();
-            const patches = createStringPatches(string, value);
-            this.#applyStringPatches(yText, patches);
+              const string = yText.toJSON();
+              const patches = createStringPatches(string, value);
+              this.#applyStringPatches(yText, patches);
+            } else {
+              base.set(property, createYTypes(value, this.#yTextPaths, path));
+            }
           } else {
-            base.set(property, createYTypes(value));
+            base.set(property, createYTypes(value, this.#yTextPaths, path));
           }
           break;
         case "remove":
@@ -221,11 +236,11 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       base = base as Y.Array<any>;
       switch (op) {
         case "add":
-          base.insert(property, [createYTypes(value)]);
+          base.insert(property, [createYTypes(value, this.#yTextPaths, path)]);
           break;
         case "replace":
           base.delete(property);
-          base.insert(property, [createYTypes(value)]);
+          base.insert(property, [createYTypes(value, this.#yTextPaths, path)]);
           break;
         case "remove":
           base.delete(property);
