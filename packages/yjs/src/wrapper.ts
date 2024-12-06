@@ -5,7 +5,6 @@ import { createYTypes, isYTextPath } from "./util.js";
 import { CRDTWrapper } from "@state-weaver/interface";
 import { JsonObject } from "type-fest";
 import fastPatch from "fast-json-patch";
-import { StringPropertyPath } from "./types.js";
 const { compare } = fastPatch;
 
 export class InvalidStateError<T> extends Error {
@@ -29,7 +28,7 @@ export class InvalidStateError<T> extends Error {
 
 export const ROOT_MAP_NAME = "__root" as const;
 
-export type YTextPaths<T extends JsonObject> = Set<StringPropertyPath<T>>;
+export type YTextPaths<T extends JsonObject> = Set<string>;
 
 export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   implements CRDTWrapper<T, D, Uint8Array>
@@ -37,12 +36,12 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   readonly #yDoc: D;
   readonly #yMap: Y.Map<any>;
   readonly #validate: (object: unknown) => object is T;
-  readonly #yTextPaths: Set<StringPropertyPath<T>>;
+  readonly #yTextPaths: Set<string>;
   #state: T | undefined;
 
   constructor(
     validate: (value: unknown) => value is T,
-    yTextPaths?: Set<StringPropertyPath<T>>,
+    yTextPaths?: Set<string>,
     clientId?: number
   ) {
     this.#yDoc = new Y.Doc() as D;
@@ -53,7 +52,7 @@ export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
       this.#yDoc.clientID = clientId;
     }
     this.#validate = validate;
-    this.#yTextPaths = yTextPaths ?? new Set<StringPropertyPath<T>>();
+    this.#yTextPaths = yTextPaths ?? new Set<string>();
   }
 
   get yDoc(): D {

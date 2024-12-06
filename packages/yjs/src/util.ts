@@ -6,10 +6,9 @@ import {
   isJsonPrimitive,
   IllegalValueError,
 } from "../../shared/src/index.js";
-import { StringPropertyPath } from "./types.js";
 
 export function isYTextPath<T extends JsonObject>(
-  yTextPaths: Set<StringPropertyPath<T>>,
+  yTextPaths: Set<string>,
   pathParts: (string | number)[]
 ): boolean {
   let path = "";
@@ -21,12 +20,12 @@ export function isYTextPath<T extends JsonObject>(
     }
   }
 
-  return yTextPaths.has(path as StringPropertyPath<T>);
+  return yTextPaths.has(path);
 }
 
 export function createYTypes<T extends JsonObject>(
   value: unknown,
-  yTextPaths: Set<StringPropertyPath<T>>,
+  yTextPaths: Set<string>,
   currentPathParts: (string | number)[] = []
 ): Y.Map<any> | Y.Array<any> | Y.Text | JsonPrimitive {
   if (isJsonObject(value)) {

@@ -1,7 +1,6 @@
 import { YjsWrapper } from "../src/index.js";
 import * as Y from "yjs";
 import { describe, expect, test, beforeEach } from "vitest";
-import { StringPropertyPath } from "../src/types.js";
 
 function alwaysTrue<T>(value: any): value is T {
   return true;
@@ -1214,7 +1213,7 @@ describe("More text tests", () => {
       p3: {},
     };
 
-    const yTextSet = new Set<StringPropertyPath<TestObject>>(["p1.a1[].n_p1"]);
+    const yTextSet = new Set<string>(["p1.a1[].n_p1"]);
     const wrapper = new YjsWrapper<TestObject>(alwaysTrue, yTextSet);
     wrapper.init(testObj);
     wrapper.update((snapshot) => {
