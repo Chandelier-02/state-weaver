@@ -29,6 +29,8 @@ export class InvalidStateError<T> extends Error {
 
 export const ROOT_MAP_NAME = "__root" as const;
 
+export type YTextPaths<T> = Set<StringPropertyPath<T>>;
+
 export class YjsWrapper<T extends JsonObject, D extends Y.Doc = Y.Doc>
   implements CRDTWrapper<T, D, Uint8Array>
 {
