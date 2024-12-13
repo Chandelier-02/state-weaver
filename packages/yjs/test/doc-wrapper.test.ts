@@ -25,14 +25,15 @@ describe("YjsWrapper", () => {
   });
 
   test("wrapper initialization", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
+
     expect(wrapper.state).toEqual(initialObject);
   });
 
   test("wrap method with object replacement", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.key1 = "newValue";
@@ -48,18 +49,19 @@ describe("YjsWrapper", () => {
   });
 
   test("deep object modifications", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.key = "newValue";
     });
 
-    expect(wrapper.state?.level1.level2.key).toBe("newValue");
+    expect(wrapper.state.level1.level2.key).toBe("newValue");
   });
 
   test("replace entire object", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     const newObject = {
       key1: "newKey1",
@@ -73,147 +75,147 @@ describe("YjsWrapper", () => {
       array: [4, 5, 6],
     };
 
-    wrapper.init(newObject);
+    wrapper.update(() => {
+      return newObject;
+    });
 
     expect(wrapper.state).toEqual(newObject);
   });
 
   describe("Local string modifications", () => {
     test("basic string replacement", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text.replace("world", "user");
       });
 
-      expect(wrapper.state?.text).toBe("Hello, user!");
+      expect(wrapper.state.text).toBe("Hello, user!");
     });
 
     test("string appending", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text + ", world!";
       });
 
-      expect(wrapper.state?.text).toBe("Hello, world!, world!");
+      expect(wrapper.state.text).toBe("Hello, world!, world!");
     });
 
     test("string truncation", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = snapshot.text.substring(0, 5);
       });
 
-      expect(wrapper.state?.text).toBe("Hello");
+      expect(wrapper.state.text).toBe("Hello");
     });
 
     test("complex string manipulation", () => {
       const starterObject = { text: "OpenAI GPT-4" };
-      const wrapper = new YjsWrapper(alwaysTrue<typeof starterObject>);
-      wrapper.init(starterObject);
+      const { wrapper } = YjsWrapper.fromObject(starterObject);
 
       wrapper.update((snapshot) => {
         snapshot.text =
           snapshot.text.replace("GPT-4", "Model") + " is amazing!";
       });
 
-      expect(wrapper.state?.text).toBe("OpenAI Model is amazing!");
+      expect(wrapper.state.text).toBe("OpenAI Model is amazing!");
     });
 
     test("string replacement with empty", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.text = "";
       });
 
-      expect(wrapper.state?.text).toBe("");
+      expect(wrapper.state.text).toBe("");
     });
   });
 
   describe("Array modifications", () => {
     test("push item to array", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.push(4);
       });
 
-      expect(wrapper.state?.array).toEqual([1, 2, 3, 4]);
+      expect(wrapper.state.array).toEqual([1, 2, 3, 4]);
     });
 
     test("splice item from array", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(1, 1);
       });
 
-      expect(wrapper.state?.array).toEqual([1, 3]);
+      expect(wrapper.state.array).toEqual([1, 3]);
     });
 
     test("replace array items", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(0, 2, 4, 5);
       });
 
-      expect(wrapper.state?.array).toEqual([4, 5, 3]);
+      expect(wrapper.state.array).toEqual([4, 5, 3]);
     });
 
     test("clear array", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.splice(0, snapshot.array.length);
       });
 
-      expect(wrapper.state?.array).toEqual([]);
+      expect(wrapper.state.array).toEqual([]);
     });
 
     test("push multiple items", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array.push(4, 5, 6);
       });
 
-      expect(wrapper.state?.array).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(wrapper.state.array).toEqual([1, 2, 3, 4, 5, 6]);
     });
 
     test("nested array modification", () => {
       const nestedArrayObject = { array: [[2, 3]] };
-      const wrapper = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
-      wrapper.init(nestedArrayObject);
+      const { wrapper } = YjsWrapper.fromObject(nestedArrayObject);
 
       wrapper.update((snapshot) => {
         (snapshot.array[0] as number[]).push(5);
       });
 
-      expect(wrapper.state?.array).toEqual([[2, 3, 5]]);
+      expect(wrapper.state.array).toEqual([[2, 3, 5]]);
     });
 
     test("replace entire array", () => {
-      const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-      wrapper.init(initialObject);
+      const { wrapper } =
+        YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
       wrapper.update((snapshot) => {
         snapshot.array = [7, 8, 9];
       });
 
-      expect(wrapper.state?.array).toEqual([7, 8, 9]);
+      expect(wrapper.state.array).toEqual([7, 8, 9]);
     });
 
     test("nested array deep modification", () => {
@@ -222,14 +224,13 @@ describe("YjsWrapper", () => {
           array: [[2, 3]],
         },
       };
-      const wrapper = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
-      wrapper.init(nestedArrayObject);
+      const { wrapper } = YjsWrapper.fromObject(nestedArrayObject);
 
       wrapper.update((snapshot) => {
         (snapshot.level1.array[0] as number[]).push(5);
       });
 
-      expect(wrapper.state?.level1.array).toEqual([[2, 3, 5]]);
+      expect(wrapper.state.level1.array).toEqual([[2, 3, 5]]);
     });
 
     test("deep nested array replacement", () => {
@@ -240,14 +241,13 @@ describe("YjsWrapper", () => {
           },
         },
       };
-      const wrapper = new YjsWrapper(alwaysTrue<typeof deepNestedArrayObject>);
-      wrapper.init(deepNestedArrayObject);
+      const { wrapper } = YjsWrapper.fromObject(deepNestedArrayObject);
 
       wrapper.update((snapshot) => {
         snapshot.level1.level2.array = [4, 5, 6];
       });
 
-      expect(wrapper.state?.level1.level2.array).toEqual([4, 5, 6]);
+      expect(wrapper.state.level1.level2.array).toEqual([4, 5, 6]);
     });
   });
 });
@@ -281,61 +281,61 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   };
 
   test("deeply nested object modifications", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.level4[2] =
         "newDeepestValue";
     });
 
-    expect(wrapper.state?.level1.level2.nestedArray[0].level3.level4[2]).toBe(
+    expect(wrapper.state.level1.level2.nestedArray[0].level3.level4[2]).toBe(
       "newDeepestValue"
     );
   });
 
   test("deeply nested array modifications", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.array[0].nestedArray[0].deeperArray.push(4, 5, 6);
     });
 
-    expect(wrapper.state?.array[0].nestedArray[0].deeperArray).toEqual([
+    expect(wrapper.state.array[0].nestedArray[0].deeperArray).toEqual([
       1, 2, 3, 4, 5, 6,
     ]);
   });
 
   test("nested object within array modification", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.array[0].nestedArray[0].key = "newNestedArrayValue";
     });
 
-    expect(wrapper.state?.array[0].nestedArray[0].key).toBe(
+    expect(wrapper.state.array[0].nestedArray[0].key).toBe(
       "newNestedArrayValue"
     );
   });
 
   test("nested array within object modification", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.key = "newNestedValue";
     });
 
-    expect(wrapper.state?.level1.level2.nestedArray[0].level3.key).toBe(
+    expect(wrapper.state.level1.level2.nestedArray[0].level3.key).toBe(
       "newNestedValue"
     );
   });
 
   test("replace deeply nested object", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2 = {
@@ -351,11 +351,11 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
       };
     });
 
-    expect(wrapper.state?.level1.level2.key).toBe("newLevel2Value");
-    expect(wrapper.state?.level1.level2.nestedArray[0].level3.key).toBe(
+    expect(wrapper.state.level1.level2.key).toBe("newLevel2Value");
+    expect(wrapper.state.level1.level2.nestedArray[0].level3.key).toBe(
       "newLevel3Value"
     );
-    expect(wrapper.state?.level1.level2.nestedArray[0].level3.level4).toEqual([
+    expect(wrapper.state.level1.level2.nestedArray[0].level3.level4).toEqual([
       "new",
       "deep",
       "array",
@@ -363,23 +363,23 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
   });
 
   test("deep nested structure updates", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.level1.level2.nestedArray[0].level3.level4[1] = "changed";
       snapshot.array[0].nestedArray[0].deeperArray[1] = 99;
     });
 
-    expect(wrapper.state?.level1.level2.nestedArray[0].level3.level4[1]).toBe(
+    expect(wrapper.state.level1.level2.nestedArray[0].level3.level4[1]).toBe(
       "changed"
     );
-    expect(wrapper.state?.array[0].nestedArray[0].deeperArray[1]).toBe(99);
+    expect(wrapper.state.array[0].nestedArray[0].deeperArray[1]).toBe(99);
   });
 
   test("replace entire object", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     const newObject = {
       level1: {
@@ -408,7 +408,9 @@ describe("YjsWrapper - Deeply Nested Structures", () => {
       ],
     };
 
-    wrapper.init(newObject);
+    wrapper.update(() => {
+      return newObject;
+    });
 
     expect(wrapper.state).toEqual(newObject);
   });
@@ -420,41 +422,41 @@ describe("YjsWrapper - Text Editing Tests", () => {
   };
 
   test("basic text replacement", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace("world", "user");
     });
 
-    expect(wrapper.state?.text).toBe("Hello, user!");
+    expect(wrapper.state.text).toBe("Hello, user!");
   });
 
   test("inserting text at the beginning", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "Hi, " + snapshot.text;
     });
 
-    expect(wrapper.state?.text).toBe("Hi, Hello, world!");
+    expect(wrapper.state.text).toBe("Hi, Hello, world!");
   });
 
   test("inserting text at the end", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text + " How are you?";
     });
 
-    expect(wrapper.state?.text).toBe("Hello, world! How are you?");
+    expect(wrapper.state.text).toBe("Hello, world! How are you?");
   });
 
   test("inserting text in the middle", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf("world");
@@ -464,84 +466,84 @@ describe("YjsWrapper - Text Editing Tests", () => {
         snapshot.text.slice(position);
     });
 
-    expect(wrapper.state?.text).toBe("Hello, beautiful world!");
+    expect(wrapper.state.text).toBe("Hello, beautiful world!");
   });
 
   test("removing text from the beginning", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.substring(7);
     });
 
-    expect(wrapper.state?.text).toBe("world!");
+    expect(wrapper.state.text).toBe("world!");
   });
 
   test("removing text from the end", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.slice(0, -7);
     });
 
-    expect(wrapper.state?.text).toBe("Hello,");
+    expect(wrapper.state.text).toBe("Hello,");
   });
 
   test("removing text from the middle", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace(", world", "");
     });
 
-    expect(wrapper.state?.text).toBe("Hello!");
+    expect(wrapper.state.text).toBe("Hello!");
   });
 
   test("replacing all text", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "Goodbye, world!";
     });
 
-    expect(wrapper.state?.text).toBe("Goodbye, world!");
+    expect(wrapper.state.text).toBe("Goodbye, world!");
   });
 
   test("replacing text with empty string", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "";
     });
 
-    expect(wrapper.state?.text).toBe("");
+    expect(wrapper.state.text).toBe("");
   });
 
   test("complex text manipulation", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.toUpperCase();
     });
 
-    expect(wrapper.state?.text).toBe("HELLO, WORLD!");
+    expect(wrapper.state.text).toBe("HELLO, WORLD!");
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.split("").reverse().join("");
     });
 
-    expect(wrapper.state?.text).toBe("!DLROW ,OLLEH");
+    expect(wrapper.state.text).toBe("!DLROW ,OLLEH");
   });
 
   test("replacing a single character", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf("H");
@@ -551,12 +553,12 @@ describe("YjsWrapper - Text Editing Tests", () => {
         snapshot.text.slice(position + 1);
     });
 
-    expect(wrapper.state?.text).toBe("Jello, world!");
+    expect(wrapper.state.text).toBe("Jello, world!");
   });
 
   test("removing a single character", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       const position = snapshot.text.indexOf(",");
@@ -564,45 +566,44 @@ describe("YjsWrapper - Text Editing Tests", () => {
         snapshot.text.slice(0, position) + snapshot.text.slice(position + 1);
     });
 
-    expect(wrapper.state?.text).toBe("Hello world!");
+    expect(wrapper.state.text).toBe("Hello world!");
   });
 
   test("adding multiple lines of text", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += "\nHow are you?\nI am fine.";
     });
 
-    expect(wrapper.state?.text).toBe("Hello, world!\nHow are you?\nI am fine.");
+    expect(wrapper.state.text).toBe("Hello, world!\nHow are you?\nI am fine.");
   });
 
   test("replacing text with multiple lines", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = "First line\nSecond line\nThird line";
     });
 
-    expect(wrapper.state?.text).toBe("First line\nSecond line\nThird line");
+    expect(wrapper.state.text).toBe("First line\nSecond line\nThird line");
   });
 
   test("appending text with special characters", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += " $%^&*()!";
     });
 
-    expect(wrapper.state?.text).toBe("Hello, world! $%^&*()!");
+    expect(wrapper.state.text).toBe("Hello, world! $%^&*()!");
   });
 
   test("removing text with special characters", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init({
+    const { wrapper } = YjsWrapper.fromObject<typeof initialObject>({
       text: "Special characters $%^&*()!",
     });
 
@@ -610,23 +611,22 @@ describe("YjsWrapper - Text Editing Tests", () => {
       snapshot.text = snapshot.text.replace(" $%^&*()!", "");
     });
 
-    expect(wrapper.state?.text).toBe("Special characters");
+    expect(wrapper.state.text).toBe("Special characters");
   });
 
   test("replacing part of a string with another string", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text.replace("world", "everyone");
     });
 
-    expect(wrapper.state?.text).toBe("Hello, everyone!");
+    expect(wrapper.state.text).toBe("Hello, everyone!");
   });
 
   test("handling empty initial text", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init({
+    const { wrapper } = YjsWrapper.fromObject<typeof initialObject>({
       text: "",
     });
 
@@ -634,23 +634,23 @@ describe("YjsWrapper - Text Editing Tests", () => {
       snapshot.text = "New text added!";
     });
 
-    expect(wrapper.state?.text).toBe("New text added!");
+    expect(wrapper.state.text).toBe("New text added!");
   });
 
   test("handling large text insertions", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text += " ".repeat(1000) + "End";
     });
 
-    expect(wrapper.state?.text.endsWith("End")).toBe(true);
+    expect(wrapper.state.text.endsWith("End")).toBe(true);
   });
 
   test("handling repeated text modifications", () => {
-    const wrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper.init(initialObject);
+    const { wrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     wrapper.update((snapshot) => {
       snapshot.text = snapshot.text + " again";
@@ -660,7 +660,7 @@ describe("YjsWrapper - Text Editing Tests", () => {
       snapshot.text = snapshot.text.replace("again", "yet again");
     });
 
-    expect(wrapper.state?.text).toBe("Hello, world! yet again");
+    expect(wrapper.state.text).toBe("Hello, world! yet again");
   });
 });
 
@@ -679,15 +679,15 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update", () => {
     // Create the initial wrapper
-    const originalWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    originalWrapper.init(initialObject);
+    const { wrapper: originalWrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.doc);
 
     // Create a new wrapper using the state update
-    const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    newWrapper.init([stateUpdate]);
+    const { wrapper: newWrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     // Both wrappers should have the same state
     expect(newWrapper.state).toEqual(originalWrapper.state);
@@ -695,8 +695,8 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update and apply additional changes", () => {
     // Create the initial wrapper
-    const originalWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    originalWrapper.init(initialObject);
+    const { wrapper: originalWrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     // Make some updates to the original wrapper
     originalWrapper.update((snapshot) => {
@@ -705,11 +705,12 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     });
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.doc);
 
     // Create a new wrapper using the state update
-    const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    newWrapper.init([stateUpdate]);
+    const { wrapper: newWrapper } = YjsWrapper.fromUpdates<
+      typeof initialObject
+    >([stateUpdate]);
 
     // The new wrapper should reflect the changes made to the original wrapper
     expect(newWrapper.state).toEqual({
@@ -727,8 +728,8 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("create wrapper from state update with nested object modifications", () => {
     // Create the initial wrapper
-    const originalWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    originalWrapper.init(initialObject);
+    const { wrapper: originalWrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     // Modify nested objects
     originalWrapper.update((snapshot) => {
@@ -736,11 +737,12 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
     });
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.doc);
 
     // Create a new wrapper using the state update
-    const newWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    newWrapper.init([stateUpdate]);
+    const { wrapper: newWrapper } = YjsWrapper.fromUpdates<
+      typeof initialObject
+    >([stateUpdate]);
 
     // Both wrappers should have the same state, including nested modifications
     expect(newWrapper.state).toEqual({
@@ -758,17 +760,16 @@ describe("YjsWrapper - Re-creation from Yjs Updates", () => {
 
   test("apply update to new wrapper and make further modifications", () => {
     // Create the initial wrapper
-    const originalWrapper = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    originalWrapper.init(initialObject);
+    const { wrapper: originalWrapper } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
     // Get the state update from the original wrapper's Y.Doc
-    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.yDoc);
+    const stateUpdate = Y.encodeStateAsUpdateV2(originalWrapper.doc);
 
     // Create a new wrapper using the state update
-    const newWrapper = new YjsWrapper<typeof initialObject>(
-      alwaysTrue<typeof initialObject>
-    );
-    newWrapper.init([stateUpdate]);
+    const { wrapper: newWrapper } = YjsWrapper.fromUpdates<
+      typeof initialObject
+    >([stateUpdate]);
 
     // Further modify the new wrapper
     newWrapper.update((snapshot) => {
@@ -804,17 +805,16 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   };
 
   test("synchronize deep object modifications between wrappers", () => {
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper1.init(initialObject);
+    const { wrapper: wrapper1 } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper<typeof initialObject>(
-      alwaysTrue<typeof initialObject>
-    );
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange = Y.encodeStateVector(wrapper1.doc);
 
     // Modify a deep nested structure in the first wrapper
     wrapper1.update((snapshot) => {
@@ -822,7 +822,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     });
 
     const objectModificationUpdate = Y.encodeStateAsUpdateV2(
-      wrapper1.yDoc,
+      wrapper1.doc,
       svBeforeChange
     );
 
@@ -835,15 +835,16 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize array modifications between wrappers", () => {
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper1.init(initialObject);
+    const { wrapper: wrapper1 } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange = Y.encodeStateVector(wrapper1.doc);
 
     // Modify the array in the first wrapper
     wrapper1.update((snapshot) => {
@@ -851,7 +852,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     });
 
     const arrayModificationUpdate = Y.encodeStateAsUpdateV2(
-      wrapper1.yDoc,
+      wrapper1.doc,
       svBeforeChange
     );
 
@@ -866,15 +867,15 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   test("synchronize nested array and object modifications", () => {
     const nestedArrayObject = { nested: { array: [[2, 3]] } };
 
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
-    wrapper1.init(nestedArrayObject);
+    const { wrapper: wrapper1 } = YjsWrapper.fromObject(nestedArrayObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange = Y.encodeStateVector(wrapper1.doc);
 
     // Modify the nested array in the first wrapper
     wrapper1.update((snapshot) => {
@@ -882,7 +883,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     });
 
     const nestedModificationUpdate = Y.encodeStateAsUpdateV2(
-      wrapper1.yDoc,
+      wrapper1.doc,
       svBeforeChange
     );
 
@@ -895,30 +896,31 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("apply multiple updates to synchronize wrappers", () => {
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper1.init(initialObject);
+    const { wrapper: wrapper1 } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange1 = Y.encodeStateVector(wrapper1.doc);
 
     // Modify the first wrapper multiple times
     wrapper1.update((snapshot) => {
       snapshot.key1 = "newValue1";
     });
 
-    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange1);
 
-    const svBeforeChange2 = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange2 = Y.encodeStateVector(wrapper1.doc);
 
     wrapper1.update((snapshot) => {
       snapshot.key2 = "newValue2";
     });
 
-    const update2 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange2);
 
     // Apply updates to the second wrapper
     wrapper2.applyUpdates([update1, update2]);
@@ -939,14 +941,14 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       },
     };
 
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof deepObject>);
-    wrapper1.init(deepObject);
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const { wrapper: wrapper1 } = YjsWrapper.fromObject(deepObject);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange = Y.encodeStateVector(wrapper1.yDoc);
+    const svBeforeChange = Y.encodeStateVector(wrapper1.doc);
 
     // Modify deep structure in the first wrapper
     wrapper1.update((snapshot) => {
@@ -955,7 +957,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
     });
 
     const deepModificationUpdate = Y.encodeStateAsUpdateV2(
-      wrapper1.yDoc,
+      wrapper1.doc,
       svBeforeChange
     );
 
@@ -969,25 +971,24 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize interleaved deep object modifications between wrappers", () => {
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper1.init(initialObject);
+    const { wrapper: wrapper1 } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper<typeof initialObject>(
-      alwaysTrue<typeof initialObject>
-    );
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
-    const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
+    const svBeforeChange1 = Y.encodeStateVector(wrapper1.doc);
+    const svBeforeChange2 = Y.encodeStateVector(wrapper2.doc);
 
     // Modify a deep nested structure in the first wrapper
     wrapper1.update((snapshot) => {
       snapshot.level1.level2.key = "newDeepValue1";
     });
 
-    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -997,7 +998,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.key = "newDeepValue2";
     });
 
-    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.doc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1008,24 +1009,23 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   });
 
   test("synchronize interleaved array modifications between wrappers", () => {
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof initialObject>);
-    wrapper1.init(initialObject);
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const { wrapper: wrapper1 } =
+      YjsWrapper.fromObject<typeof initialObject>(initialObject);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper<typeof initialObject>(
-      alwaysTrue<typeof initialObject>
-    );
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof initialObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
-    const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
+    const svBeforeChange1 = Y.encodeStateVector(wrapper1.doc);
+    const svBeforeChange2 = Y.encodeStateVector(wrapper2.doc);
 
     // Modify the array in the first wrapper
     wrapper1.update((snapshot) => {
       snapshot.array.push(4);
     });
 
-    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1035,7 +1035,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.array.push(5);
     });
 
-    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.doc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1048,25 +1048,23 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
   test("synchronize interleaved nested array and object modifications", () => {
     const nestedArrayObject = { nested: { array: [[2, 3]] } };
 
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof nestedArrayObject>);
-    wrapper1.init(nestedArrayObject);
+    const { wrapper: wrapper1 } = YjsWrapper.fromObject(nestedArrayObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper<typeof nestedArrayObject>(
-      alwaysTrue<typeof nestedArrayObject>
-    );
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<
+      typeof nestedArrayObject
+    >([wrapper1InitialUpdate]);
 
-    const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
-    const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
+    const svBeforeChange1 = Y.encodeStateVector(wrapper1.doc);
+    const svBeforeChange2 = Y.encodeStateVector(wrapper2.doc);
 
     // Modify the nested array in the first wrapper
     wrapper1.update((snapshot) => {
       (snapshot.nested.array[0] as number[]).push(5);
     });
 
-    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1076,7 +1074,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       (snapshot.nested.array[0] as number[]).push(6);
     });
 
-    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.doc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1096,18 +1094,16 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       },
     };
 
-    const wrapper1 = new YjsWrapper(alwaysTrue<typeof deepObject>);
-    wrapper1.init(deepObject);
+    const { wrapper: wrapper1 } = YjsWrapper.fromObject(deepObject);
 
-    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.yDoc);
+    const wrapper1InitialUpdate = Y.encodeStateAsUpdateV2(wrapper1.doc);
 
-    const wrapper2 = new YjsWrapper<typeof deepObject>(
-      alwaysTrue<typeof deepObject>
-    );
-    wrapper2.init([wrapper1InitialUpdate]);
+    const { wrapper: wrapper2 } = YjsWrapper.fromUpdates<typeof deepObject>([
+      wrapper1InitialUpdate,
+    ]);
 
-    const svBeforeChange1 = Y.encodeStateVector(wrapper1.yDoc);
-    const svBeforeChange2 = Y.encodeStateVector(wrapper2.yDoc);
+    const svBeforeChange1 = Y.encodeStateVector(wrapper1.doc);
+    const svBeforeChange2 = Y.encodeStateVector(wrapper2.doc);
 
     // Modify deep structure in the first wrapper
     wrapper1.update((snapshot) => {
@@ -1115,7 +1111,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.array.push(4);
     });
 
-    const update1 = Y.encodeStateAsUpdateV2(wrapper1.yDoc, svBeforeChange1);
+    const update1 = Y.encodeStateAsUpdateV2(wrapper1.doc, svBeforeChange1);
 
     // Apply the first update to the second wrapper
     wrapper2.applyUpdates([update1]);
@@ -1126,7 +1122,7 @@ describe("YjsWrapper - Synchronizing Multiple Wrappers", () => {
       snapshot.level1.level2.array.push(5);
     });
 
-    const update2 = Y.encodeStateAsUpdateV2(wrapper2.yDoc, svBeforeChange2);
+    const update2 = Y.encodeStateAsUpdateV2(wrapper2.doc, svBeforeChange2);
 
     // Apply the second update back to the first wrapper
     wrapper1.applyUpdates([update2]);
@@ -1150,8 +1146,9 @@ describe("YjsWrapper", () => {
   test("validateFunc should succeed and update state", () => {
     const initialData = { key: "value" };
 
-    const wrapper = new YjsWrapper(validateFunc);
-    wrapper.init(initialData);
+    const { wrapper } = YjsWrapper.fromObject(initialData, {
+      validate: validateFunc,
+    });
 
     wrapper.update((state) => {
       state.key = "newValue";
@@ -1163,8 +1160,9 @@ describe("YjsWrapper", () => {
 
   test("validateFunc should fail and rollback state", () => {
     const initialData = { key: "value" };
-    const wrapper = new YjsWrapper(validateFunc);
-    wrapper.init(initialData);
+    const { wrapper } = YjsWrapper.fromObject(initialData, {
+      validate: validateFunc,
+    });
 
     expect(() => {
       wrapper.update((state) => {
@@ -1180,15 +1178,21 @@ describe("YjsWrapper", () => {
 
 describe("More text tests", () => {
   test.skip("Should be able to do simple replacements on date strings", async () => {
-    const wrapper = new YjsWrapper<{ str: string }>(alwaysTrue);
-    wrapper.init({ str: new Date().toISOString() });
+    const { wrapper } = YjsWrapper.fromObject<{ str: string }>({
+      str: new Date().toISOString(),
+    });
 
     for (let i = 0; i < 10_000; i++) {
       const date = new Date().toISOString();
-      const { newState } = wrapper.update((snapshot) => {
+      const updateResult = wrapper.update((snapshot) => {
         snapshot.str = date;
       });
-      expect({ str: date }).toEqual(newState);
+
+      let newState: { str: string };
+      if (updateResult.changed) {
+        newState = updateResult.newState;
+      }
+      expect({ str: date }).toEqual(newState!);
       await new Promise<void>((resolve) => setTimeout(() => resolve(), 5));
     }
   }, 100_000);
@@ -1214,8 +1218,10 @@ describe("More text tests", () => {
     };
 
     const yTextSet = new Set<string>(["p1.a1[].n_p1"]);
-    const wrapper = new YjsWrapper<TestObject>(alwaysTrue, yTextSet);
-    wrapper.init(testObj);
+    const { wrapper } = YjsWrapper.fromObject<TestObject>(testObj, {
+      validate: alwaysTrue,
+      yTextPaths: yTextSet,
+    });
     wrapper.update((snapshot) => {
       snapshot.p1.a1[0].n_p1 = snapshot.p1.a1[0].n_p1 + "new text";
     });
@@ -1228,5 +1234,70 @@ describe("More text tests", () => {
     wrapper.update((snapshot) => {
       snapshot.p2 = "well this is different";
     });
+  });
+});
+
+describe("NOOP tests", () => {
+  test("Should return NoChange result when initializing from empty object", () => {
+    const initialData = {};
+
+    const result = YjsWrapper.fromObject(initialData);
+
+    expect(result.changed).toBe(false);
+    expect(result.wrapper.state).toEqual(initialData);
+    //@ts-expect-error
+    expect(result.patches).toBeUndefined();
+    //@ts-expect-error
+    expect(result.update).toBeUndefined();
+  });
+
+  test("Should return NoChange result when initializing from updates that cause no change", () => {
+    const initialData = { key: "value" };
+
+    const { wrapper: originalWrapper } = YjsWrapper.fromObject(initialData);
+
+    // Generate an empty update
+    const update = new Uint8Array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
+
+    const result = YjsWrapper.fromUpdates<typeof initialData>([update]);
+
+    expect(result.changed).toBe(false);
+    expect(result.wrapper.state).toEqual({});
+    //@ts-expect-error
+    expect(result.patches).toBeUndefined();
+  });
+
+  test("Should return NoChange result when performing a NOOP update", () => {
+    const initialData = { key: "value" };
+
+    const { wrapper } = YjsWrapper.fromObject(initialData);
+
+    const result = wrapper.update((state) => {});
+
+    expect(result.changed).toBe(false);
+    expect(wrapper.state).toEqual(initialData);
+    //@ts-expect-error
+    expect(result.patches).toBeUndefined();
+    //@ts-expect-error
+    expect(result.update).toBeUndefined();
+  });
+
+  test("Should return NoChange result when applying updates causes a NOOP", () => {
+    const initialData = { key: "value" };
+
+    const { wrapper } = YjsWrapper.fromObject(initialData);
+
+    // Generate an empty update
+    const noopUpdate = Y.encodeStateAsUpdateV2(
+      wrapper.doc,
+      Y.encodeStateVector(wrapper.doc)
+    );
+
+    const result = wrapper.applyUpdates([noopUpdate]);
+
+    expect(result.changed).toBe(false);
+    expect(wrapper.state).toEqual(initialData);
+    //@ts-expect-error
+    expect(result.patches).toBeUndefined();
   });
 });
