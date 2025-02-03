@@ -59,6 +59,14 @@ export class YjsWrapper<T extends JsonObject>
   readonly #actorId: number | undefined;
   #state: T;
 
+  #updateV2Handler = (update: Uint8Array, origin: "local" | "remote") => {
+    if (origin === "local") {
+      this.#lastUpdate = update;
+    }
+  };
+
+  #lastUpdate: Uint8Array | undefined;
+
   public static fromObject<T extends JsonObject>(
     object: T,
     config?: YjsWrapperFromConfig<T>
@@ -72,7 +80,8 @@ export class YjsWrapper<T extends JsonObject>
     const yTextPaths = config?.yTextPaths ?? new Set<string>();
     const validate = config?.validate ?? alwaysTrue;
 
-    const beforeStateVector = Y.encodeStateVector(yDoc);
+    let fromObjectUpdate: Uint8Array | undefined;
+    yDoc.once("updateV2", (update) => (fromObjectUpdate = update));
 
     let patches: Patches<true> = [];
     yDoc.transact(() => {
@@ -117,10 +126,9 @@ export class YjsWrapper<T extends JsonObject>
       } satisfies NoChangeFromObjectResult<T, Uint8Array, Y.Doc>;
     }
 
-    const update = Y.encodeStateAsUpdateV2(yDoc, beforeStateVector);
-    if (isEmptyUpdate(update)) {
+    if (!fromObjectUpdate || isEmptyUpdate(fromObjectUpdate)) {
       throw new Error(
-        "Object is not empty, and change generated patches, but generated empty update. This should not happen."
+        `Initializing wrapper from non-empty object led to no update`
       );
     }
 
@@ -128,7 +136,7 @@ export class YjsWrapper<T extends JsonObject>
       changed: true,
       wrapper,
       state: initialState,
-      update,
+      update: fromObjectUpdate,
     } satisfies ChangeFromObjectResult<T, Uint8Array, Y.Doc>;
   }
 
@@ -199,10 +207,13 @@ export class YjsWrapper<T extends JsonObject>
     this.#yMap = yMap;
     this.#validate = validate;
     this.#yTextPaths = yTextPaths ?? new Set<string>();
+
     if (actorId) {
       this.#actorId = actorId;
       this.#yDoc.clientID = actorId;
     }
+
+    this.#yDoc.on("updateV2", this.#updateV2Handler);
   }
 
   get doc(): Y.Doc {
@@ -215,7 +226,6 @@ export class YjsWrapper<T extends JsonObject>
 
   update(changeFn: (value: T) => void): UpdateResult<T, Uint8Array> {
     const oldState = this.#state;
-    const beforeStateVector = Y.encodeStateVector(this.#yDoc);
 
     let patches: Patches<true> = [];
     this.#yDoc.transact(() => {
@@ -226,7 +236,7 @@ export class YjsWrapper<T extends JsonObject>
       for (const patch of patches) {
         applyPatch(this.#yMap, patch, this.#yTextPaths);
       }
-    });
+    }, "local");
 
     const newState = this.#yMap.toJSON();
     if (!this.#validate(newState)) {
@@ -238,9 +248,17 @@ export class YjsWrapper<T extends JsonObject>
       );
     }
 
-    const update = Y.encodeStateAsUpdateV2(this.#yDoc, beforeStateVector);
+    if (
+      patches.length > 0 &&
+      (!this.#lastUpdate || isEmptyUpdate(this.#lastUpdate))
+    ) {
+      throw new Error(`Object state changed, but no update was generated`);
+    }
 
-    if (patches.length === 0 && isEmptyUpdate(update)) {
+    if (
+      patches.length === 0 &&
+      (!this.#lastUpdate || isEmptyUpdate(this.#lastUpdate))
+    ) {
       return { changed: false } satisfies NoChangeUpdateResult;
     }
 
@@ -250,7 +268,7 @@ export class YjsWrapper<T extends JsonObject>
       oldState,
       newState,
       patches,
-      update,
+      update: this.#lastUpdate!,
     } satisfies ChangeUpdateResult<T, Uint8Array>;
   }
 
@@ -261,7 +279,7 @@ export class YjsWrapper<T extends JsonObject>
       for (const update of updates) {
         Y.applyUpdateV2(this.#yDoc, update);
       }
-    });
+    }, "remote");
 
     const newState = this.#yMap.toJSON();
     const patches = compare(oldState, newState) as Patches;
@@ -293,6 +311,7 @@ export class YjsWrapper<T extends JsonObject>
   }
 
   [Symbol.dispose](): void {
+    this.#yDoc.off("updateV2", this.#updateV2Handler);
     this.#yDoc.destroy();
   }
 }
