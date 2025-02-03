@@ -227,10 +227,9 @@ export class YjsWrapper<T extends JsonObject>
   update(changeFn: (value: T) => void): UpdateResult<T, Uint8Array> {
     const oldState = this.#state;
 
-    let patches: Patches<true> = [];
     this.#yDoc.transact(() => {
       // @ts-ignore
-      [, patches] = create(this.#state, changeFn, {
+      const [, patches] = create(this.#state, changeFn, {
         enablePatches: true,
       });
       for (const patch of patches) {
@@ -239,6 +238,9 @@ export class YjsWrapper<T extends JsonObject>
     }, "local");
 
     const newState = this.#yMap.toJSON();
+    // We have to do this as we need to treat the crdt object as the source of truth
+    const patches = compare(oldState, newState) as Patches;
+
     if (!this.#validate(newState)) {
       throw new InvalidStateError(
         `Update to state breaks schema!`,
@@ -256,8 +258,9 @@ export class YjsWrapper<T extends JsonObject>
     }
 
     if (
-      patches.length === 0 &&
-      (!this.#lastUpdate || isEmptyUpdate(this.#lastUpdate))
+      patches.length === 0 ||
+      !this.#lastUpdate ||
+      isEmptyUpdate(this.#lastUpdate)
     ) {
       return { changed: false } satisfies NoChangeUpdateResult;
     }
