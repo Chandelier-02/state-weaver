@@ -22,7 +22,7 @@
     "dist"
   ],
   "dependencies": {
-    "@state-weaver/interface": "workspace:^",
+    "@state-weaver/interface": "^0.3.0",
     "fast-json-patch": "^3.1.1",
     "mutative": "^1.0.8",
     "textdiff-create": "^1.1.11",
